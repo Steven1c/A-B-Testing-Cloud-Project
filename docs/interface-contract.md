@@ -1,73 +1,76 @@
-# Interface Contract Antar-Layer
+# Interface Contract — Platform Survei & Uji A/B
 
-*Disepakati pada akhir Minggu 1 antara Analysis Layer (STAT) dan Infrastructure & Operations Layer (STI).*
+**Versi:** 1.0 · **Tanggal:** 10 November 2026 · **Penanggung jawab:** Aufar Radifan(Data Integration)
+**Layer terhubung:** Analysis (`src/analysis/`) ↔ Infrastructure & Operations (`src/app/`, `src/infra/`)
+**Stack:** Streamlit (PaaS) + Supabase PostgreSQL
 
----
+**Studi:** skor kepuasan pembelajaran (Likert 1–5), Luring (Varian A) vs Daring (Varian B), uji Mann-Whitney U dua arah.
+H₀: tidak ada perbedaan signifikan pada median (distribusi peringkat) skor antara Luring dan Daring. H₁: ada perbedaan signifikan.
 
-## 1. Spesifikasi Skema Database (`survey_responses`)
+## 1. Format input (survei → database → analisis)
 
-Koneksi pertukaran data antara aplikasi web (pengumpul data) dan script analitik dilakukan melalui satu tabel database PostgreSQL di Supabase:
+| Field | Tipe | Aturan |
+|---|---|---|
+| `response_id` | UUID | otomatis, primary key |
+| `session_id` | string ≤ 64 | anonim, acak, unik (1 jawaban per sesi) |
+| `variant` | `'A'` / `'B'` | A = Luring, B = Daring |
+| `score` | integer | 1–5 (1 = sangat tidak puas, 5 = sangat puas) |
+| `created_at` | timestamp UTC | otomatis oleh database |
 
-| Nama Kolom | Tipe Data | Nullable | Deskripsi & Batasan Nilai |
-| :--- | :--- | :--- | :--- |
-| `id` | UUID | NO | Primary key otomatis (`gen_random_uuid()`) |
-| `session_id` | TEXT | NO | ID unik per sesi pengisian responden |
-| `assigned_variant` | CHAR(1) | NO | Pilihan varian: `'A'` (Kontrol) atau `'B'` (Treatment) |
-| `willingness_to_pay` | NUMERIC | NO | Skor minat/kesediaan bayar: integer 1 s.d. 10 |
-| `perceived_trust` | INT | NO | Skor persepsi kepercayaan: integer 1 s.d. 5 |
-| `clicked_signup` | BOOLEAN | NO | Konversi klik tombol daftar: `true` atau `false` |
-| `time_spent_sec` | NUMERIC | NO | Waktu di halaman sebelum submit (detik) |
-| `created_at` | TIMESTAMPTZ | NO | Waktu pencatatan UTC |
+Tanpa data pribadi (nama, email, NIM, IP). Data simulasi (`simulate_data.py`) memakai kolom dan aturan yang sama. Constraint `UNIQUE`, `CHECK (variant IN ('A','B'))`, dan `CHECK (score BETWEEN 1 AND 5)` ada di `schema.sql`.
 
----
+## 2. Format output (analisis → dashboard)
 
-## 2. Kontrak Pemanggilan Fungsi Komputasi Statistik
+`test_name` (`"mann_whitney_u"`), `n_a`, `n_b`, `median_a`, `median_b`, `statistic` (U), `p_value` (0–1, dua arah, koreksi *ties*), `effect_size` (rank-biserial), `ci_lower`, `ci_upper` (selang kepercayaan 1 − α; metode: _Hodges–Lehmann / bootstrap, isi sesuai kesepakatan_), `alpha` (0.05), `decision` (`"tolak H0"` / `"gagal menolak H0"`, tolak jika p < α), `interpretation` (kalimat Bahasa Indonesia).
 
-Analysis Layer menyediakan modul `src/analysis/stats_engine.py` dengan signature fungsi wajib:
+## 3. Jadwal / pemicu eksekusi
+
+- **Simpan jawaban:** langsung saat pengguna menekan "Kirim".
+- **Hitung uji:** sesuai permintaan, saat halaman hasil dibuka atau tombol "Perbarui hasil" ditekan. Hasil di-*cache* maksimal 60 detik. Tidak ada job terjadwal.
+- **Backup database:** _isi, sesuai keputusan tim Infrastructure_.
+
+## 4. Fungsi antar-layer
 
 ```python
-def analyze_ab_test(df: pd.DataFrame, alpha: float = 0.05) -> dict
+# src/app/db.py
+insert_response(session_id: str, variant: str, score: int) -> str   # response_id
+fetch_scores() -> dict[str, list[int]]                               # {"A": [...], "B": [...]}
+
+# src/analysis/stats_engine.py
+run_mann_whitney(scores_a, scores_b, alpha=0.05) -> TestResult       # field = Bagian 2
+
+# src/analysis/simulate_data.py
+generate_responses(n_a: int, n_b: int, seed: int | None = None) -> DataFrame
 ```
+Exception bersama: `InvalidScoreError`, `InvalidVariantError`, `InsufficientSampleError`, `DuplicateSessionError`, `DatabaseUnavailableError`.
 
-### Format Payload Output (Return Dictionary):
-```json
-{
-  "status": "success",
-  "sample_size": {"total": 260, "n_a": 130, "n_b": 130},
-  "descriptive": {"mean_a": 5.82, "std_a": 1.48, "mean_b": 6.61, "std_b": 1.39, "diff_mean": 0.79},
-  "assumptions": {"is_normal": true, "is_equal_var": true},
-  "continuous_test": {
-    "test_name": "Welch's Two-Sample t-test (One-tailed)",
-    "t_statistic": 4.4120,
-    "p_value": 0.0001,
-    "ci_95": [0.44, 1.14],
-    "decision": "Tolak H₀",
-    "conclusion": "Tolak H₀ pada tingkat signifikansi 5%. Varian B unggul signifikan."
-  },
-  "proportion_test": {
-    "cr_a": 22.3,
-    "cr_b": 36.2,
-    "z_statistic": 2.5120,
-    "p_value": 0.0060,
-    "decision": "Tolak H₀"
-  }
-}
-```
+## 5. Target kinerja (usulan, diukur di Minggu 2)
 
----
+| Operasi | Target |
+|---|---|
+| Muat halaman survei | ≤ 3 detik |
+| Simpan jawaban | ≤ 2 detik |
+| Hitung uji (N hingga 10.000) | ≤ 2 detik |
+| Tampilkan halaman hasil | ≤ 5 detik |
 
-## 3. Batas Kinerja & Perilaku Saat Gagal (Error Handling)
+## 6. Perilaku saat gagal
 
-1. **Target Waktu Respons:**
-   * Waktu submit formulir survei ke Supabase: `< 500 ms`.
-   * Waktu eksekusi komputasi analitik statistik: `< 200 ms` untuk N = 1.000.
-2. **Penanganan Data Kosong / Kurang:**
-   * Jika baris data di database `< 6` (kurang dari 3 per varian), modul analitik mengembalikan status `"warning"` dan web menampilkan instruksi injeksi data simulasi.
-3. **Koneksi Database Terputus:**
-   * Jika API Supabase tidak merespons (timeout > 3 detik), antarmuka web beralih ke cache lokal in-memory tanpa memicu crash (unhandled exception).
+Ukuran sampel minimum: **`MIN_N` = _isi_ per varian** (dari perhitungan ukuran sampel dan daya uji di `analysis-report.md`).
 
----
+| Kondisi | Dideteksi di | Perilaku | Data disimpan? | Pesan ke pengguna |
+|---|---|---|---|---|
+| Skor kosong | `main.py` | blok tombol kirim | Tidak | "Pilih satu skor (1–5) sebelum mengirim." |
+| Skor di luar 1–5 / bukan integer | `main.py` + DB | tolak | Tidak | "Skor tidak valid. Pilih 1 sampai 5." |
+| Varian kosong / bukan A/B | `main.py` + DB | tolak | Tidak | "Pilih metode: Luring atau Daring." |
+| Jawaban ganda satu sesi | `db.py` (UNIQUE) | tolak | Hanya yang pertama | "Anda sudah mengisi survei ini." |
+| Sampel per varian < `MIN_N` | `stats_engine.py` | uji tidak dihitung | n/a | "Data belum cukup (min. `MIN_N` per metode). Saat ini: Luring n=…, Daring n=…." |
+| Database/layanan tidak merespons | `db.py` | retry 2×, lalu gagal | Tidak | "Layanan sedang tidak tersedia. Coba lagi nanti." |
+| Galat tak terduga | `main.py` | catat ke log, tanpa stack trace ke pengguna | Tidak | "Terjadi kesalahan. Silakan coba lagi." |
 
-## 4. Riwayat Revisi Bertanggal
+## 7. Riwayat revisi dan persetujuan
 
-* **v1.0 (Nov 10, 2026):** Rilis awal kontrak skema tabel dan signature fungsi `analyze_ab_test`. Disepakati seluruh anggota kedua layer.
+Perubahan setelah Minggu 1 dicatat sebagai revisi bertanggal, disetujui kedua layer.
+
+| Versi | Tanggal | Perubahan | Disetujui (Analysis / Infra) |
+|---|---|---|---|
+| 1.0 | _isi_ | Kontrak awal | _nama_ / _nama_ |
