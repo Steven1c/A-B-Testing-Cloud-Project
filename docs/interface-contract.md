@@ -7,7 +7,7 @@
 | Item | Isi |
 |---|---|
 | Versi | 1.0 (draf) |
-| Tanggal | _isi tanggal_ |
+| Tanggal | 10 November 2026 |
 | Penanggung jawab | _nama kamu_ (Data Integration & Contract Specialist) |
 | Layer terhubung | Analysis (`stats_engine.py`, `simulate_data.py`) ↔ App (`main.py`, `db.py`) ↔ Infra (`schema.sql`) |
 | Stack | Streamlit (PaaS) + Supabase PostgreSQL |
@@ -18,7 +18,7 @@
 - H₀: Tidak ada perbedaan signifikan pada median (distribusi peringkat) skor kepuasan antara Luring dan Daring.
 - H₁: Ada perbedaan signifikan pada median (distribusi peringkat) skor kepuasan antara Luring dan Daring.
 
-**Alasan memakai Mann-Whitney.** Data Likert bersifat ordinal dan banyak nilai kembar (*ties*), sehingga uji berbasis peringkat lebih tepat daripada Welch's t-test atau Z-test. Konsekuensinya, `stats_engine.py` harus diubah dari Welch/Z menjadi Mann-Whitney (lihat Bagian 9).
+**Alasan memakai Mann-Whitney.** Data bersifat ordinal dan banyak nilai kembar (*ties*), sehingga uji berbasis peringkat lebih tepat daripada Welch's t-test atau Z-test. Konsekuensinya, `stats_engine.py` harus diubah dari Welch/Z menjadi Mann-Whitney.
 
 ## 2. Kontrak input (kuesioner → database → analisis)
 
