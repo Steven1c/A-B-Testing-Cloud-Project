@@ -2,10 +2,10 @@
 
 Repositori ini memuat implementasi *end-to-end* layanan platform survei daring terintegrasi dengan mesin pengujian hipotesis inferensial A/B testing secara *real-time*.
 
-* **Program Studi:** Statistika & Sains Data / Rekayasa Perangkat Lunak (STI & STAT)
-* **Mata Kuliah:** Komputasi Awan (1519600054)
-* **Service Model:** PaaS (Platform as a Service) & Managed Database
-* **Stack Utama:** Python, Streamlit, Supabase (PostgreSQL), SciPy, Statsmodels
+- **Program Studi:** Statistika & Sistem Teknologi dan Informasi
+- **Mata Kuliah:** Komputasi Awan (1519600054)
+- **Service Model:** PaaS (Platform as a Service) & Managed Database
+- **Stack Utama:** Python, Streamlit, Supabase (PostgreSQL), SciPy, Statsmodels
 
 ---
 
