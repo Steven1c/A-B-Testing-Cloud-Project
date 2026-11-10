@@ -11,7 +11,7 @@ Dokumen pelaporan kontribusi mingguan per anggota sesuai rubrik *Individual Cont
 | **[Nama Anggota 1]** | [NIM 1] | Infrastructure & Operations (STI) | Web Developer & Repo Setup |
 | **[Nama Anggota 2]** | [NIM 2] | Infrastructure & Operations (STI) | Database Architect & Cloud Deployer |
 | **[Nama Anggota 3]** | [NIM 3] | Analysis Layer (STAT) | Lead Statistician (Hypothesis & Power Analysis) |
-| **[Nama Anggota 4]** | [NIM 4] | Analysis Layer (STAT) | Data Simulation & Statistical Diagnostics |
+| **Aufar Radifan** | 1314624044 | Analysis Layer (STAT) | Data Simulation & Statistical Diagnostics |
 
 ---
 
