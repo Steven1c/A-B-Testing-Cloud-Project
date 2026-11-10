@@ -1,27 +1,26 @@
 # Catatan Peran & Kontribusi Individu (Role Log)
 
-Dokumen pelaporan kontribusi mingguan per anggota sesuai rubrik *Individual Contribution (5%)*.
-
 ---
 
 ## Daftar Anggota & Pembagian Layer
 
-| Nama Anggota | NIM | Layer Penugasan | Peran Utama |
-| :--- | :--- | :--- | :--- |
-| **[Nama Anggota 1]** | [NIM 1] | Infrastructure & Operations (STI) | Web Developer & Repo Setup |
-| **[Nama Anggota 2]** | [NIM 2] | Infrastructure & Operations (STI) | Database Architect & Cloud Deployer |
-| **[Nama Anggota 3]** | [NIM 3] | Analysis Layer (STAT) | Lead Statistician (Hypothesis & Power Analysis) |
-| **[Nama Anggota 4]** | [NIM 4] | Analysis Layer (STAT) | Data Simulation & Statistical Diagnostics |
+| Nama Anggota         | NIM        | Layer Penugasan             | Peran Utama                                     |
+| :-------------------- | :---------- | :--------------------------- | :----------------------------------------------- |
+| **Muhamad Hafiz**    | 1314624047 | Infrastructure & Operations | Web Developer & Repo Setup                      |
+| **[Nama Anggota 2]** | [NIM 2]    | Infrastructure & Operations | Database Architect & Cloud Deployer             |
+| **[Nama Anggota 3]** | [NIM 3]    | Analysis Layer              | Lead Statistician (Hypothesis & Power Analysis) |
+| **[Nama Anggota 4]** | [NIM 4]    | Analysis Layer              | Data Simulation & Statistical Diagnostics       |
 
 ---
 
 ## Log Kontribusi Mingguan
 
 ### Minggu 1: Perencanaan, Inisialisasi & Interface Contract
-* **[Nama Anggota 1]:** Inisialisasi struktur repositori, konfigurasi `.gitignore`, setup `requirements.txt`, dan menyusun kerangka Interface Contract. *(Tautan Commit: `commit-hash-01`)*
-* **[Nama Anggota 2]:** Setup proyek Supabase, menyusun `schema.sql`, dan mengonfigurasi Row Level Security (RLS). *(Tautan Commit: `commit-hash-02`)*
-* **[Nama Anggota 3]:** Merumuskan hipotesis formal `H₀` dan `H₁`, menghitung Power Analysis untuk ukuran sampel `N`. *(Tautan Commit: `commit-hash-03`)*
-* **[Nama Anggota 4]:** Menulis modul pengujian asumsi (Shapiro-Wilk dan Levene) di `stats_engine.py`. *(Tautan Commit: `commit-hash-04`)*
+
+- **Muhamad Hafiz:** Inisialisasi struktur repositori, konfigurasi `.gitignore`, setup `requirements.txt`, dan menyusun kerangka Interface Contract. *(Link Commit:* `commit-hash-01`*)*
+- **[Nama Anggota 2]:** Setup proyek Supabase, menyusun `schema.sql`, dan mengonfigurasi Row Level Security (RLS). *(Tautan Commit: `commit-hash-02`)*
+- **[Nama Anggota 3]:** Merumuskan hipotesis formal `H₀` dan `H₁`, menghitung Power Analysis untuk ukuran sampel `N`. *(Tautan Commit: `commit-hash-03`)*
+- **[Nama Anggota 4]:** Menulis modul pengujian asumsi (Shapiro-Wilk dan Levene) di `stats_engine.py`. *(Tautan Commit: `commit-hash-04`)*
 
 ---
 
