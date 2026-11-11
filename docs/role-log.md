@@ -9,7 +9,7 @@
 | **Muhamad Hafiz**    | 1314624047 | Infrastructure & Operations | Web Developer & Repo Setup                      |
 | **[Nama Anggota 2]** | [NIM 2]    | Infrastructure & Operations | Database Architect & Cloud Deployer             |
 | **[Nama Anggota 3]** | [NIM 3]    | Analysis Layer              | Lead Statistician (Hypothesis & Power Analysis) |
-| **Aufar Radifan** | 1314624044    | Analysis Layer              | Data Simulation & Statistical Diagnostics       |
+| **Aufar Radifan**    | 1314624044 | Analysis Layer              | Data Simulation & Statistical Diagnostics       |
 
 ---
 
@@ -20,7 +20,7 @@
 - **Muhamad Hafiz:** Inisialisasi struktur repositori, konfigurasi `.gitignore`, setup `requirements.txt`, dan menyusun kerangka Interface Contract. *(Link Commit:* `commit-hash-01`*)*
 - **[Nama Anggota 2]:** Setup proyek Supabase, menyusun `schema.sql`, dan mengonfigurasi Row Level Security (RLS). *(Tautan Commit: `commit-hash-02`)*
 - **[Nama Anggota 3]:** Merumuskan hipotesis formal `H₀` dan `H₁`, menghitung Power Analysis untuk ukuran sampel `N`. *(Tautan Commit: `commit-hash-03`)*
-- **[Nama Anggota 4]:** Menulis modul pengujian asumsi (Shapiro-Wilk dan Levene) di `stats_engine.py`. *(Tautan Commit: `commit-hash-04`)*
+- **Aufar Raifan:** Menulis modul pengujian asumsi (mann whitney) di `stats_engine.py`. *(Tautan Commit: `commit-hash-04`)*
 
 ---
 
