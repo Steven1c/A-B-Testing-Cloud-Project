@@ -52,5 +52,10 @@ Thumbs.db
 credentials.json
 .env.local
 
+# Brief Tugas Kuliah
 Brief Tugas/
 Brief Tugas/*
+
+# Temporary diagram raw assets
+diagram_assets/
+diagram_assets/*
