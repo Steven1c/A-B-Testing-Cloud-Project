@@ -9,7 +9,7 @@
 | **Muhamad Hafiz**    | 1314624047 | Infrastructure & Operations | Web Developer & Repo Setup                      |
 | **[Nama Anggota 2]** | [NIM 2]    | Infrastructure & Operations | Database Architect & Cloud Deployer             |
 | **[Nama Anggota 3]** | [NIM 3]    | Analysis Layer              | Lead Statistician (Hypothesis & Power Analysis) |
-| **[Nama Anggota 4]** | [NIM 4]    | Analysis Layer              | Data Simulation & Statistical Diagnostics       |
+| **Aufar Radifan** | 1314624044    | Analysis Layer              | Data Simulation & Statistical Diagnostics       |
 
 ---
 
