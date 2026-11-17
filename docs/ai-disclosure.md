@@ -1,16 +1,16 @@
 # Catatan Penggunaan Alat Bantu AI (AI Disclosure)
 
-Sesuai aturan singkat brief tugas: *"Penggunaan alat bantu AI dicatat di laporan: untuk bagian apa, dan bagaimana hasilnya diverifikasi."*
-
 ---
 
 ## Log Penggunaan Alat Bantu AI
 
-| Tanggal | Alat Bantu AI | Bagian Tugas / Kode | Bentuk Bantuan | Metode Verifikasi Manusia |
-| :--- | :--- | :--- | :--- | :--- |
-| **Nov 10, 2026** | Antigravity AI / LLM | Struktur Repositori & Boilerplate Streamlit | Pembuatan kerangka awal direktori proyek, template `schema.sql`, dan scaffolding web | Menjalankan kode secara lokal via terminal, memverifikasi tidak ada error sintaks, dan mengecek rute halaman |
-| **Nov 10, 2026** | Antigravity AI / LLM | Modul Statistik `stats_engine.py` | Rekomendasi formula derajat bebas Welch-Satterthwaite dan sintaks `proportions_ztest` | Membandingkan output perhitungan p-value manual dengan library R dan SciPy |
-| **[Tanggal N]** | [Nama AI] | [Bagian Tugas] | [Deskripsi Bantuan] | [Metode Verifikasi Hasil] |
+| Tanggal          | Alat Bantu AI | Bagian Tugas / Kode                         | Bentuk Bantuan                                                                        | Metode Verifikasi Manusia                                                                                    |
+| :---------------- | :------------- | :------------------------------------------- | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| **Nov 10, 2026** | Agentic AI    | Struktur Repositori & Boilerplate Streamlit | Pembuatan kerangka awal direktori proyek, template `schema.sql`, dan scaffolding web  | Menjalankan kode secara lokal via terminal, memverifikasi tidak ada error sintaks, dan mengecek rute halaman |
+| **Nov 10, 2026** | Agentic AI    | Modul Statistik `stats_engine.py`           | Rekomendasi formula derajat bebas Welch-Satterthwaite dan sintaks `proportions_ztest` | Membandingkan output perhitungan p-value manual dengan library R dan SciPy                                   |
+| **Nov 12, 2026** | LLM           | Arsitektur Sistem                           | Membuat diagram arsitektur HTML                                                       | Verifikasi diagram asli dan kejelasan output                                                                 |
+|                  |               |                                             |                                                                                       |                                                                                                              |
+|                  |               |                                             |                                                                                       |                                                                                                              |
 
 ---
 
