@@ -16,23 +16,22 @@
 ## Log Kontribusi Mingguan
 
 ### Minggu 1: Perencanaan, Inisialisasi & Interface Contract
-
-- **Muhammad Hafiz:** Inisialisasi struktur repositori, konfigurasi `.gitignore`, setup `requirements.txt`, dan menyusun kerangka Interface Contract. *(Link Commit:* `commit-hash-01`*)*
-- **Rizki Annisa:** Setup proyek Supabase, menyusun `schema.sql`, dan mengonfigurasi Row Level Security (RLS). *(Tautan Commit: `commit-hash-02`)*
-- **Musthafa Kamal:** Merumuskan hipotesis formal `H₀` dan `H₁`, menghitung Power Analysis untuk ukuran sampel `N`. *(Tautan Commit: `commit-hash-03`)*
-- **Aufar Raifan:** Menulis modul pengujian asumsi (mann whitney) di `stats_engine.py`. *(Tautan Commit: `commit-hash-04`)*
+- **Muhammad Hafiz:** Inisialisasi struktur repositori, konfigurasi `.gitignore`, setup `requirements.txt`, dan menyusun kerangka Interface Contract.
+- **Rizki Annisa:** Setup proyek Supabase, menyusun `schema.sql`, dan mengonfigurasi Row Level Security (RLS).
+- **Musthafa Kamal:** Merumuskan hipotesis formal `H₀` dan `H₁`, menghitung Power Analysis untuk ukuran sampel `N`.
+- **Aufar Raifan:** Menulis modul pengujian asumsi (mann whitney) di `stats_engine.py`.
 
 ---
 
 ### Minggu 2: Eksekusi, Integrasi & Konsultasi
-* **[Nama Anggota 1]:** Mengembangkan antarmuka web Streamlit (Halaman survei Varian A/B dan form input). *(Tautan Commit: `commit-hash-05`)*
-* **[Nama Anggota 2]:** Menghubungkan client Supabase ke Streamlit (`db.py`) dan menerapkan proteksi password halaman admin. *(Tautan Commit: `commit-hash-06`)*
-* **[Nama Anggota 3]:** Mengembangkan script simulasi data Monte Carlo `simulate_data.py`. *(Tautan Commit: `commit-hash-07`)*
-* **[Nama Anggota 4]:** Mengintegrasikan komputasi Welch's t-test dan Z-test proporsi ke dashboard. *(Tautan Commit: `commit-hash-08`)*
+* **Muhammad Hafiz:** Merencanakan dan mengembangkan frontend web Streamlit (Halaman survei Varian A/B dan form input) dan scenario tiap varian.
+* **Rizki Annisa:** Menghubungkan client Supabase ke Streamlit (`db.py`) dan menerapkan proteksi password halaman admin. 
+* **Musthafa Kamal:** Mengembangkan script simulasi data Monte Carlo `simulate_data.py`.
+* **Aufar Raifan:** Mengintegrasikan komputasi Welch's t-test dan Z-test proporsi ke dashboard.
 
 ---
 
 ### Minggu 3: Pengujian, Evaluasi Silang, Demo & Teardown
-* **[Nama Anggota 1 & 2]:** Deployment web ke PaaS publik, pencatatan bukti monitoring, dan penulisan `docs/runbook.md` & `docs/cost-report.md`. *(Tautan Commit: `commit-hash-09`)*
-* **[Nama Anggota 3 & 4]:** Finalisasi `docs/analysis-report.md`, eksekusi evaluasi silang `docs/cross-review.md`. *(Tautan Commit: `commit-hash-10`)*
-* **Seluruh Anggota:** Perekaman video demo YouTube dan pelaksanaan prosedur *teardown* cloud.
+* **Muhammad Hafiz & Rizki Annisa:** Deployment web ke PaaS publik, pencatatan bukti monitoring, dan penulisan `docs/runbook.md` & `docs/cost-report.md`.
+* **Musthafa Kamal & Aufar Raifan:** Finalisasi `docs/analysis-report.md`, eksekusi evaluasi silang `docs/cross-review.md`.
+* **Rizki Annisa:** Perekaman video demo YouTube dan pelaksanaan prosedur *teardown* cloud.
