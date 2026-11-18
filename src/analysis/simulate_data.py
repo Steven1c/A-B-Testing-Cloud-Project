@@ -9,6 +9,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from src.contract import ITEM_COLUMNS
+
 
 def generate_responses(
     n_a: int = 70,
@@ -86,19 +88,17 @@ def generate_responses(
             sid = f"sim_{uuid.uuid4().hex[:12]}"
             row = {
                 "session_id": sid,
-                "variant": group,
-                "variant_group": group,  # alias untuk kompatibilitas skema
+                "variant_group": group,
             }
 
             for dim_key, cols in dimensions.items():
                 for col in cols:
                     row[col] = int(rng.choice(scores, p=probs[dim_key]))
 
-            # Metrik utama H0 vs H1 adalah sat_overall (skala 1-5)
-            row["score"] = int(row["sat_overall"])
             records.append(row)
 
-    df = pd.DataFrame(records)
+    target_columns = ["session_id", "variant_group", *ITEM_COLUMNS]
+    df = pd.DataFrame(records)[target_columns]
     # Acak urutan baris
     df = df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
     return df

@@ -30,6 +30,11 @@ class InsufficientSampleError(StatsError, ValueError):
     pass
 
 
+class IncompleteResponseError(StatsError, ValueError):
+    """Dilempar jika jawaban survei belum lengkap (kurang dari seluruh butir yang diwajibkan)."""
+    pass
+
+
 class DatabaseError(AppBaseError):
     """Base exception untuk kesalahan operasi database."""
     pass

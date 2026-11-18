@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.survey_responses (
     -- Identitas respon & sesi anonim
     response_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id VARCHAR(64) NOT NULL UNIQUE,
-    variant CHAR(1) NOT NULL CHECK (variant IN ('A', 'B')),
+    variant_group CHAR(1) NOT NULL CHECK (variant_group IN ('A', 'B')),
     
     -- Metrik Utama Inferensial H0 vs H1 (Skala Likert 1-5)
     score SMALLINT NOT NULL CHECK (score BETWEEN 1 AND 5),
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.survey_responses (
 );
 
 -- 2. Index untuk optimasi query agregasi analisis A/B
-CREATE INDEX IF NOT EXISTS idx_survey_variant ON public.survey_responses (variant);
+CREATE INDEX IF NOT EXISTS idx_survey_variant ON public.survey_responses (variant_group);
 CREATE INDEX IF NOT EXISTS idx_survey_created_at ON public.survey_responses (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_survey_score ON public.survey_responses (score);
 

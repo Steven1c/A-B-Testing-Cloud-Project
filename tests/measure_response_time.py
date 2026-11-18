@@ -40,8 +40,10 @@ def main():
     args = ap.parse_args()
 
     df = generate_responses(args.size, args.size, seed=0)
-    a = df.loc[df.variant == "A", "score"].tolist()
-    b = df.loc[df.variant == "B", "score"].tolist()
+    v_col = "variant_group" if "variant_group" in df.columns else "variant"
+    s_col = "sat_overall" if "sat_overall" in df.columns else "score"
+    a = df.loc[df[v_col] == "A", s_col].tolist()
+    b = df.loc[df[v_col] == "B", s_col].tolist()
 
     print(f"Uji dijalankan {args.n}x, n per varian = {args.size}. Satuan: detik.\n")
     print("| Operasi | Target | " + " | ".join(f"U{i}" for i in range(1, args.n + 1)) + " | Rata-rata | Maks | Lolos? |")

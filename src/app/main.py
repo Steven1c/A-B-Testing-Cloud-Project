@@ -1,268 +1,912 @@
+"""
+main.py
+Aplikasi Web Platform Survei & Dashboard Uji A/B (Luring vs Daring).
+Mematuhi PRD (docs/prd-web.md) dan Interface Contract v1.1.
+Desain UI: Modern Web Clean (Font Inter, Card Kontras Tinggi, Zero Emote Slop).
+"""
+
 import os
 import sys
 import time
 import uuid
 import random
+from typing import Dict, Any, List
+
 import streamlit as st
 import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 from dotenv import load_dotenv
 
-# Tambahkan path root agar modul src.analysis dan src.app dapat diimpor
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+# Tambahkan root path proyek ke sys.path
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
-from src.app.db import insert_response, fetch_all_responses, get_supabase
-from src.analysis.stats_engine import compute_sample_size, analyze_ab_test
-from src.analysis.simulate_data import generate_simulated_responses
+from src.contract import ITEM_COLUMNS, PRIMARY_ITEM, MIN_N, TARGET_N, TARGET_TOTAL_N
+from src.errors import DuplicateSessionError, IncompleteResponseError, InsufficientSampleError
+from src.app.questions import DIMENSIONS
+try:
+    from src.app.db import (
+        get_supabase,
+        insert_response,
+        fetch_scores,
+        fetch_all_responses,
+        fetch_all_item_scores,
+        reset_database,
+    )
+except ImportError:
+    import importlib
+    import src.app.db
+    importlib.reload(src.app.db)
+    from src.app.db import (
+        get_supabase,
+        insert_response,
+        fetch_scores,
+        fetch_all_responses,
+        fetch_all_item_scores,
+        reset_database,
+    )
+from src.analysis.stats_engine import run_mann_whitney, describe_items
+from src.analysis.simulate_data import generate_responses
 
+# Muat environment variable
 load_dotenv()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
+# Konfigurasi halaman Streamlit
 st.set_page_config(
-    page_title="Platform Survei & Uji A/B EduTech",
-    page_icon="📊",
-    layout="wide"
+    page_title="Platform Survei dan Uji AB Pembelajaran",
+    page_icon=None,
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
+
+# ------------------------------------------------------------------------------
+# Injeksi Tema UI Neumorphism Murni (Soft UI, Zero Slop)
+# ------------------------------------------------------------------------------
+def apply_custom_style():
+    """Menginjeksi CSS Neumorphism murni tanpa garis solid dengan shadow kuat kanan-kiri-bawah."""
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Tipografi Inter untuk elemen konten teks */
+        html, body, [data-testid="stAppViewContainer"], .stMarkdown, p, label {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Proteksi mutlak font icon Material Streamlit agar ligatur tidak bocor menjadi teks */
+        [data-testid="stIconMaterial"], 
+        .material-symbols-rounded, 
+        .material-icons, 
+        [class*="material-icons"],
+        [data-testid="stExpanderToggleIcon"] span,
+        [data-baseweb="icon"] {
+            font-family: "Material Symbols Rounded", "Material Icons" !important;
+            font-style: normal !important;
+        }
+
+        /* 1. Latar Belakang Canvas Neumorphism */
+        .stApp {
+            background-color: #eef2f6 !important;
+            color: #1e293b !important;
+        }
+
+        /* 2. Sidebar Neumorphic */
+        section[data-testid="stSidebar"] {
+            background-color: #eef2f6 !important;
+            border-right: none !important;
+            box-shadow: 4px 0 16px rgba(163, 177, 198, 0.35) !important;
+        }
+
+        /* 3. Card Neumorphic (Shadow Kuat Kanan, Kiri, Bawah, Tanpa Garis Solid) */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background: #eef2f6 !important;
+            border: none !important;
+            border-radius: 20px !important;
+            box-shadow: 
+                0 12px 24px rgba(163, 177, 198, 0.6),
+                8px 8px 18px rgba(163, 177, 198, 0.65),
+                -6px 8px 16px rgba(163, 177, 198, 0.35),
+                -8px -8px 20px rgba(255, 255, 255, 0.95) !important;
+            padding: 22px !important;
+            margin-bottom: 20px !important;
+        }
+
+        /* 4. Expander Neumorphic */
+        div[data-testid="stExpander"] {
+            background: #eef2f6 !important;
+            border-radius: 18px !important;
+            border: none !important;
+            box-shadow: 
+                0 10px 20px rgba(163, 177, 198, 0.55),
+                6px 6px 14px rgba(163, 177, 198, 0.6),
+                -5px 6px 12px rgba(163, 177, 198, 0.3),
+                -6px -6px 16px rgba(255, 255, 255, 0.95) !important;
+            margin-bottom: 16px !important;
+            overflow: hidden !important;
+        }
+
+        div[data-testid="stExpander"] details {
+            border: none !important;
+        }
+
+        div[data-testid="stExpander"] summary {
+            background: #eef2f6 !important;
+            border: none !important;
+            font-weight: 600 !important;
+            color: #0f172a !important;
+            padding: 14px 20px !important;
+        }
+
+        /* 5. Metric KPI Cards Neumorphic */
+        div[data-testid="stMetric"] {
+            background: #eef2f6 !important;
+            border-radius: 18px !important;
+            border: none !important;
+            box-shadow: 
+                0 10px 20px rgba(163, 177, 198, 0.55),
+                6px 6px 14px rgba(163, 177, 198, 0.6),
+                -5px 6px 12px rgba(163, 177, 198, 0.3),
+                -6px -6px 16px rgba(255, 255, 255, 0.95) !important;
+            padding: 16px 20px !important;
+            min-height: 85px !important;
+        }
+
+        div[data-testid="stMetricLabel"] {
+            color: #475569 !important;
+            font-weight: 600 !important;
+            font-size: 0.82rem !important;
+        }
+
+        div[data-testid="stMetricValue"] {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            font-size: 1.55rem !important;
+            line-height: 1.2 !important;
+        }
+
+        /* 6. Tombol Reguler Neumorphic */
+        div.stButton > button {
+            background: #eef2f6 !important;
+            color: #1e293b !important;
+            border: none !important;
+            border-radius: 14px !important;
+            box-shadow: 
+                5px 5px 12px rgba(163, 177, 198, 0.6),
+                -5px -5px 12px rgba(255, 255, 255, 0.9) !important;
+            font-weight: 600 !important;
+            padding: 10px 22px !important;
+            transition: all 0.15s ease-in-out !important;
+        }
+
+        div.stButton > button:hover {
+            color: #4f46e5 !important;
+            box-shadow: 
+                3px 3px 8px rgba(163, 177, 198, 0.6),
+                -3px -3px 8px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        div.stButton > button:active {
+            box-shadow: 
+                inset 3px 3px 6px rgba(163, 177, 198, 0.6),
+                inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* 7. Tombol Aksi Utama (Accent Neumorphic) */
+        div.stButton > button[kind="primary"] {
+            background: #4f46e5 !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 14px !important;
+            box-shadow: 
+                5px 5px 14px rgba(79, 70, 229, 0.4),
+                -3px -3px 10px rgba(255, 255, 255, 0.8) !important;
+            font-weight: 600 !important;
+        }
+
+        div.stButton > button[kind="primary"]:hover {
+            background: #4338ca !important;
+            box-shadow: 
+                3px 3px 10px rgba(79, 70, 229, 0.5),
+                -2px -2px 8px rgba(255, 255, 255, 0.8) !important;
+            color: #ffffff !important;
+        }
+
+        div.stButton > button[kind="primary"]:active {
+            box-shadow: 
+                inset 3px 3px 8px rgba(49, 46, 129, 0.6) !important;
+        }
+
+        /* 8. Radio Button Likert Options (Neumorphic Chips) */
+        div[role="radiogroup"] {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        div[role="radiogroup"] > label {
+            background: #eef2f6 !important;
+            border-radius: 14px !important;
+            padding: 10px 18px !important;
+            border: none !important;
+            box-shadow: 
+                4px 4px 10px rgba(163, 177, 198, 0.55),
+                -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
+            transition: all 0.15s ease !important;
+            cursor: pointer !important;
+            color: #1e293b !important;
+            font-size: 0.9rem !important;
+        }
+
+        div[role="radiogroup"] > label:hover {
+            color: #4f46e5 !important;
+            box-shadow: 
+                2px 2px 6px rgba(163, 177, 198, 0.55),
+                -2px -2px 6px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* 9. Input Fields (Sunken Neumorphic) */
+        div[data-baseweb="input"] {
+            background-color: #eef2f6 !important;
+            border-radius: 14px !important;
+            border: none !important;
+            box-shadow: 
+                inset 4px 4px 8px rgba(163, 177, 198, 0.5),
+                inset -4px -4px 8px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        input[type="password"], input[type="text"] {
+            background-color: transparent !important;
+            color: #0f172a !important;
+            font-weight: 500 !important;
+        }
+
+        /* 10. Alert Boxes Neumorphic */
+        div[data-testid="stAlert"] {
+            background: #eef2f6 !important;
+            border-radius: 16px !important;
+            border: none !important;
+            box-shadow: 
+                0 8px 18px rgba(163, 177, 198, 0.45),
+                5px 5px 12px rgba(163, 177, 198, 0.5),
+                -5px -5px 14px rgba(255, 255, 255, 0.9) !important;
+            padding: 16px !important;
+        }
+
+        /* 11. Progress Bar Hijau (Sunken Track + Elevated Bar) */
+        div[data-testid="stProgress"] {
+            margin: 14px 0 !important;
+        }
+
+        div[data-testid="stProgress"] p, div[data-testid="stProgress"] span {
+            color: #334155 !important;
+            font-weight: 600 !important;
+            font-size: 0.9rem !important;
+        }
+
+        div[data-testid="stProgress"] div[data-testid="stProgressBarTrack"],
+        div[data-testid="stProgressBarTrack"] {
+            background-color: #eef2f6 !important;
+            border-radius: 12px !important;
+            height: 16px !important;
+            padding: 2px !important;
+            border: none !important;
+            box-shadow: 
+                inset 3px 3px 6px rgba(163, 177, 198, 0.6),
+                inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+            overflow: hidden !important;
+        }
+
+        div[data-testid="stProgress"] div[data-testid="stProgressBarTrack"] > div,
+        div[data-testid="stProgressBarTrack"] > div,
+        div[data-testid="stProgress"] div[role="progressbar"] > div,
+        div[data-testid="stProgress"] div[data-testid="stProgressBarTrack"] div {
+            background-color: #10b981 !important;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%) !important;
+            border-radius: 10px !important;
+            height: 100% !important;
+            box-shadow: 2px 2px 6px rgba(16, 185, 129, 0.4) !important;
+        }
+
+        /* 12. Tabs Neumorphic */
+        button[data-baseweb="tab"] {
+            background: transparent !important;
+            border-radius: 12px !important;
+            padding: 8px 18px !important;
+            font-weight: 600 !important;
+            color: #64748b !important;
+            border: none !important;
+        }
+
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background: #eef2f6 !important;
+            border: none !important;
+            color: #4f46e5 !important;
+            box-shadow: 
+                inset 3px 3px 6px rgba(163, 177, 198, 0.5),
+                inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* Clean Neumorphic Badge */
+        .clean-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 10px;
+            background: #eef2f6;
+            border: none;
+            box-shadow: 
+                3px 3px 7px rgba(163, 177, 198, 0.5),
+                -3px -3px 7px rgba(255, 255, 255, 0.9);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #4f46e5;
+            margin-bottom: 8px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# Terapkan styling
+apply_custom_style()
+
+# ------------------------------------------------------------------------------
 # Inisialisasi Session State
+# ------------------------------------------------------------------------------
 if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())[:8]
+    st.session_state["session_id"] = uuid.uuid4().hex[:16]
 if "variant" not in st.session_state:
-    st.session_state.variant = random.choice(["A", "B"])
-if "start_time" not in st.session_state:
-    st.session_state.start_time = time.time()
-if "survey_submitted" not in st.session_state:
-    st.session_state.survey_submitted = False
-if "local_cache_df" not in st.session_state:
-    st.session_state.local_cache_df = pd.DataFrame()
+    st.session_state["variant"] = random.choice(["A", "B"])
+if "step" not in st.session_state:
+    st.session_state["step"] = "scenario"
+if "submitted" not in st.session_state:
+    st.session_state["submitted"] = False
+if "answers" not in st.session_state:
+    st.session_state["answers"] = {}
+if "last_result" not in st.session_state:
+    st.session_state["last_result"] = None
+if "last_result_time" not in st.session_state:
+    st.session_state["last_result_time"] = 0
 
 
-# --- SIDEBAR NAVIGASI ---
-st.sidebar.title("Navigasi Sistem")
+# ------------------------------------------------------------------------------
+# Navigasi Sidebar
+# ------------------------------------------------------------------------------
+st.sidebar.markdown('<span class="clean-badge">NAVIGASI SISTEM</span>', unsafe_allow_html=True)
+st.sidebar.title("Platform A/B Testing")
 menu = st.sidebar.radio(
-    "Pilih Halaman:",
-    ["Formulir Survei (Pengunjung)", "Dashboard Analisis A/B (Dosen/Admin)"]
+    "Menu:",
+    ["Formulir Survei", "Dashboard Analisis"],
 )
 
 st.sidebar.markdown("---")
-supabase_status = "Terhubung" if get_supabase() is not None else "Mode Mock (Lokal)"
-st.sidebar.caption(f"Status Database: **{supabase_status}**")
-st.sidebar.caption("Proyek Komputasi Awan — Topik 3")
+sb_client = get_supabase()
+db_status_text = "Terhubung (Supabase DBaaS)" if sb_client is not None else "Mode Mock (In-Memory)"
+st.sidebar.caption(f"Status Database: **{db_status_text}**")
+st.sidebar.caption("Proyek Komputasi Awan - Topik 3")
 
 
-# ==============================================================================
-# HALAMAN 1: FORMULIR SURVEI PUBLIK
-# ==============================================================================
-if menu == "Formulir Survei (Pengunjung)":
-    st.title("Program Sertifikasi: Data Science & Cloud Computing")
-    
-    variant = st.session_state.variant
+# ------------------------------------------------------------------------------
+# AREA 1: FORMULIR SURVEI PUBLIK
+# ------------------------------------------------------------------------------
+if menu == "Formulir Survei":
+    variant = st.session_state["variant"]
+    variant_label = "Pembelajaran Luring (Tatap Muka)" if variant == "A" else "Pembelajaran Daring (Online LMS & Video)"
 
-    if st.session_state.survey_submitted:
-        st.success("Terima kasih! Respon Anda telah berhasil dicatat.")
-        st.info("Setiap pengunjung secara acak menerima salah satu varian tampilan untuk keperluan eksperimen A/B testing.")
-        if st.button("Isi Ulang (Uji Coba Pengunjung Baru)"):
-            st.session_state.session_id = str(uuid.uuid4())[:8]
-            st.session_state.variant = random.choice(["A", "B"])
-            st.session_state.start_time = time.time()
-            st.session_state.survey_submitted = False
+    # Sub-view A: Halaman Terima Kasih
+    if st.session_state["submitted"]:
+        st.markdown('<span class="clean-badge">STATUS PENGIRIMAN</span>', unsafe_allow_html=True)
+        st.success("Jawaban survei tersimpan di database.")
+
+        with st.container(border=True):
+            st.markdown("### Ringkasan Sesi")
+            st.write(f"- ID Sesi: `{st.session_state['session_id']}`")
+            st.write(f"- Metode Dinilai: **{variant_label}**")
+            q1_score = st.session_state["answers"].get(PRIMARY_ITEM, "-")
+            st.write(f"- Skor Kepuasan Keseluruhan (Q1): `{q1_score} / 5`")
+            st.caption("Data tersimpan anonim tanpa identitas pribadi untuk evaluasi statistik eksperimen.")
+
+        st.markdown("")
+        if st.button("Mulai Sesi Baru", type="primary"):
+            st.session_state["session_id"] = uuid.uuid4().hex[:16]
+            st.session_state["variant"] = random.choice(["A", "B"])
+            st.session_state["step"] = "scenario"
+            st.session_state["submitted"] = False
+            st.session_state["answers"] = {}
             st.rerun()
 
-    else:
-        # Render Banner Berdasarkan Varian
+    # Sub-view B: Step 1 — Halaman Stimulus Skenario
+    elif st.session_state["step"] == "scenario":
+        st.markdown('<span class="clean-badge">TAHAP 1 DARI 2: SKENARIO</span>', unsafe_allow_html=True)
+        st.title("Survei Kepuasan Pembelajaran")
+        st.write("Perhatikan konteks metode pembelajaran yang Anda terima berikut ini:")
+
         if variant == "A":
-            # VARIAN A: KONTROL (Tampilan Standar / Informatif)
-            st.subheader("Tingkatkan Keterampilan Cloud & Data Analytics Anda")
-            st.write(
-                "Program pelatihan komprehensif selama 4 minggu yang mencakup Python, SQL, "
-                "dan penggelaran layanan di Google Cloud Platform dan AWS."
-            )
-            st.markdown(
+            st.markdown("### Varian A: Pembelajaran Luring (Tatap Muka)")
+            st.info(
                 """
-                **Kurikulum Pelatihan:**
-                - Modul 1: Dasar Pemrograman Python & Analisis Data Eksploratif
-                - Modul 2: Desain Database Relasional & Query SQL Terapan
-                - Modul 3: Arsitektur Cloud Computing & Deployment Container
+                **Konteks Skenario: Pembelajaran Luring (Tatap Muka di Kampus)**
+                * Perkuliahan berlangsung tatap muka langsung di ruang kelas kampus sesuai jadwal tetap.
+                * Materi disampaikan via papan tulis dan proyektor dengan diskusi fisik bersama dosen dan rekan mahasiswa.
+                * Presensi, tanya jawab, pengerjaan tugas, dan evaluasi berlangsung di ruang kelas fisik.
                 """
             )
         else:
-            # VARIAN B: TREATMENT (Social Proof & Urgensi)
-            st.subheader("🔥 Bergabung dengan 1.250+ Mahasiswa yang Telah Menguasai Cloud")
-            st.markdown("⭐ **Rating 4.9/5 dari 320 Alumni Terverifikasi**")
+            st.markdown("### Varian B: Pembelajaran Daring (Online)")
             st.info(
-                "💬 *'Materi sangat aplikatif! Membantu saya lolos magang Cloud Architect di perusahaan teknologi terkemuka.'* "
-                "— **Rian, Mahasiswa Semester 5**"
+                """
+                **Konteks Skenario: Pembelajaran Daring (Online Jarak Jauh)**
+                * Perkuliahan berlangsung jarak jauh melalui platform konferensi video (Zoom/Meet) dan LMS.
+                * Materi disampaikan via berbagi layar (screen sharing) presentasi dan rekaman video yang dapat diakses ulang.
+                * Presensi otomatis, diskusi melalui mikrofon/chat, dan pengumpulan tugas berlangsung daring.
+                """
             )
-            st.warning("⏳ **Sisa 5 Kuota Beasiswa Potongan Biaya untuk Pendaftaran Minggu Ini!**")
-            st.markdown(
-                """
-                **Keunggulan Program:**
-                - Kurikulum industri langsung praktik hands-on di konsol cloud nyata
-                - Sertifikat kompetensi yang diakui dan portofolio GitHub siap kerja
-                """
+
+        st.markdown("#### Aktivitas Pembelajaran")
+        # Grid Foto Stimulus 2x2 dengan fallback informatif
+        asset_subfolder = "variant_a" if variant == "A" else "variant_b"
+        base_asset_dir = os.path.join(os.path.dirname(__file__), "assets", asset_subfolder)
+
+        items_meta = [
+            {
+                "filename": "1_lecture.jpg",
+                "title": "1. Pemaparan Materi",
+                "desc": (
+                    "Dosen menjelaskan materi langsung di depan kelas memakai proyektor dan papan tulis."
+                    if variant == "A"
+                    else "Dosen membagikan layar materi slide presentasi via konferensi video."
+                ),
+            },
+            {
+                "filename": "2_discussion.jpg",
+                "title": "2. Diskusi Kelompok",
+                "desc": (
+                    "Diskusi kelompok tatap muka bersama rekan satu meja di kelas."
+                    if variant == "A"
+                    else "Kolaborasi virtual di breakout room dan penyuntingan dokumen daring bersama."
+                ),
+            },
+            {
+                "filename": "3_qa.jpg",
+                "title": "3. Sesi Tanya Jawab",
+                "desc": (
+                    "Mahasiswa mengacungkan tangan dan berdialog langsung dengan dosen di kelas."
+                    if variant == "A"
+                    else "Mahasiswa bertanya melalui fitur raise hand, mikrofon, atau kolom obrolan."
+                ),
+            },
+            {
+                "filename": "4_assignment.jpg",
+                "title": "4. Pengerjaan Tugas",
+                "desc": (
+                    "Pengerjaan tugas atau kuis secara tertulis di lembar fisik di ruangan kelas."
+                    if variant == "A"
+                    else "Pengumpulan tugas mandiri dan kuis digital melalui portal LMS kampus."
+                ),
+            },
+        ]
+
+        col1, col2 = st.columns(2)
+        for idx, item in enumerate(items_meta):
+            target_col = col1 if idx % 2 == 0 else col2
+            with target_col:
+                img_path = os.path.join(base_asset_dir, item["filename"])
+                if os.path.exists(img_path):
+                    st.image(img_path, caption=item["title"], use_container_width=True)
+                    st.caption(item["desc"])
+                else:
+                    with st.container(border=True):
+                        st.markdown(f"**{item['title']}**")
+                        st.write(item["desc"])
+
+        st.markdown("---")
+        st.write(
+            "Perhatikan skenario di atas. Bayangkan Anda mengikuti perkuliahan dengan metode tersebut, "
+            "lalu klik tombol di bawah untuk mengisi evaluasi kepuasan."
+        )
+
+        if st.button("Mulai Kuesioner", type="primary", use_container_width=True):
+            st.session_state["step"] = "questions"
+            st.rerun()
+
+    # Sub-view C: Step 2 — Halaman Kuesioner (20 Butir)
+    elif st.session_state["step"] == "questions":
+        st.markdown('<span class="clean-badge">TAHAP 2 DARI 2: KUESIONER</span>', unsafe_allow_html=True)
+        st.title("Kuesioner Kepuasan Pembelajaran")
+        st.caption(f"Metode yang dievaluasi: **{variant_label}**")
+
+        c_back, c_status = st.columns([1, 4])
+        with c_back:
+            if st.button("Kembali ke Skenario"):
+                st.session_state["step"] = "scenario"
+                st.rerun()
+
+        # Skala Likert Legenda
+        st.info(
+            "**Panduan Skala Penilaian:** 1 = Sangat Tidak Puas | 2 = Tidak Puas | 3 = Netral | 4 = Puas | 5 = Sangat Puas"
+        )
+
+        likert_options = [1, 2, 3, 4, 5]
+        likert_labels = {
+            1: "1 - Sangat Tidak Puas",
+            2: "2 - Tidak Puas",
+            3: "3 - Netral",
+            4: "4 - Puas",
+            5: "5 - Sangat Puas",
+        }
+
+        # Cari pertanyaan Q1
+        q1_item = None
+        for dim_title, items in DIMENSIONS:
+            for item in items:
+                if item[1] == PRIMARY_ITEM:
+                    q1_item = item
+                    break
+            if q1_item:
+                break
+
+        # Render Q1 (Metrik Utama)
+        with st.container(border=True):
+            st.markdown('<span class="clean-badge">METRIK UTAMA HIPOTESIS</span>', unsafe_allow_html=True)
+            st.markdown("### Pertanyaan Utama: Kepuasan Keseluruhan")
+            q1_text = q1_item[2] if variant == "A" else q1_item[3]
+            st.markdown(f"**{q1_item[0]}. {q1_text}**")
+            
+            cur_q1 = st.session_state["answers"].get(PRIMARY_ITEM)
+            idx_q1 = likert_options.index(cur_q1) if cur_q1 in likert_options else None
+            val_q1 = st.radio(
+                label=q1_text,
+                options=likert_options,
+                index=idx_q1,
+                format_func=lambda x: likert_labels[x],
+                horizontal=True,
+                key=f"radio_{PRIMARY_ITEM}",
+                label_visibility="collapsed",
+            )
+            if val_q1 is not None:
+                st.session_state["answers"][PRIMARY_ITEM] = val_q1
+
+        st.markdown("---")
+        st.markdown("### Butir Evaluasi Diagnostik")
+
+        # Render Q2 s.d. Q20 dalam expander per dimensi
+        for dim_title, items in DIMENSIONS:
+            with st.expander(f"Dimensi: {dim_title}", expanded=True):
+                for no_str, col_name, text_a, text_b in items:
+                    if col_name == PRIMARY_ITEM:
+                        continue
+                    q_text = text_a if variant == "A" else text_b
+                    st.markdown(f"**{no_str}. {q_text}**")
+
+                    cur_val = st.session_state["answers"].get(col_name)
+                    idx_val = likert_options.index(cur_val) if cur_val in likert_options else None
+                    val = st.radio(
+                        label=q_text,
+                        options=likert_options,
+                        index=idx_val,
+                        format_func=lambda x: likert_labels[x],
+                        horizontal=True,
+                        key=f"radio_{col_name}",
+                        label_visibility="collapsed",
+                    )
+                    if val is not None:
+                        st.session_state["answers"][col_name] = val
+                    st.write("")
+
+        # Evaluasi kelengkapan jawaban
+        total_items = len(ITEM_COLUMNS)
+        filled_items = sum(1 for c in ITEM_COLUMNS if st.session_state["answers"].get(c) in (1, 2, 3, 4, 5))
+        is_complete = filled_items == total_items
+
+        st.markdown("---")
+        st.caption(f"Kelengkapan pengisian: **{filled_items} dari {total_items} butir** dijawab.")
+
+        if not is_complete:
+            st.warning("Jawab seluruh 20 pertanyaan sebelum mengirimkan formulir.")
+
+        if st.button("Kirim Jawaban", type="primary", disabled=not is_complete, use_container_width=True):
+            try:
+                insert_response(
+                    session_id=st.session_state["session_id"],
+                    variant=variant,
+                    answers=st.session_state["answers"],
+                )
+                st.session_state["submitted"] = True
+                st.rerun()
+            except DuplicateSessionError:
+                st.error("Sesi ini sudah pernah mengirimkan jawaban survei.")
+            except IncompleteResponseError as e:
+                st.error(f"Pengiriman ditolak: {e}")
+            except Exception as e:
+                st.error(f"Gagal menyimpan data: {e}")
+
+
+# ------------------------------------------------------------------------------
+# AREA 2: DASHBOARD ANALISIS A/B (ADMIN / DOSEN)
+# ------------------------------------------------------------------------------
+elif menu == "Dashboard Analisis":
+    st.markdown('<span class="clean-badge">PANEL ANALITIK</span>', unsafe_allow_html=True)
+    st.title("Dashboard Analisis Mann-Whitney U")
+    st.caption("Evaluasi perbedaan kepuasan pembelajaran Luring vs Daring.")
+
+    # Proteksi Autentikasi Password Admin
+    with st.sidebar.expander("Autentikasi Admin", expanded=True):
+        admin_pwd = st.text_input("Password Admin:", type="password")
+
+    if admin_pwd != ADMIN_PASSWORD:
+        st.warning("Masukkan password admin untuk membuka hasil analisis.")
+        st.caption("Password default lokal: admin123")
+        st.stop()
+
+    st.success("Autentikasi admin berhasil.")
+
+    # Tombol Operasional & Sinkronisasi Data (3 Tombol Sejajar Proporsional)
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+
+    with col_btn1:
+        if st.button("Perbarui Data", use_container_width=True):
+            st.session_state["last_result_time"] = 0
+            st.toast("Memuat data terbaru...")
+            st.rerun()
+
+    with col_btn2:
+        if st.button("Injeksi Data Uji (N=70/grup)", use_container_width=True):
+            df_sim = generate_responses(n_a=70, n_b=70, seed=int(time.time()))
+            injected_count = 0
+            for _, row in df_sim.iterrows():
+                ans = {c: int(row[c]) for c in ITEM_COLUMNS}
+                try:
+                    insert_response(
+                        session_id=str(row["session_id"]),
+                        variant=str(row["variant_group"]),
+                        answers=ans,
+                    )
+                    injected_count += 1
+                except Exception:
+                    pass
+            st.session_state["last_result_time"] = 0
+            st.toast(f"{injected_count} baris data simulasi berhasil diinjeksi.")
+            st.rerun()
+
+    with col_btn3:
+        if st.button("Reset Data (Hapus Semua)", use_container_width=True):
+            reset_database()
+            st.session_state["last_result"] = None
+            st.session_state["last_result_time"] = 0
+            st.toast("Seluruh data respons berhasil dibersihkan.")
+            st.rerun()
+
+    # Ambil skor aktual
+    scores_dict = fetch_scores()
+    scores_a = scores_dict.get("A", [])
+    scores_b = scores_dict.get("B", [])
+    n_a = len(scores_a)
+    n_b = len(scores_b)
+    total_n = n_a + n_b
+
+    st.markdown("---")
+    st.subheader("1. Progres Pengumpulan Sampel")
+
+    # Progress bar ketercapaian sampel (Warna Hijau)
+    progress_val = min(total_n / TARGET_TOTAL_N, 1.0)
+    st.progress(progress_val, text=f"Total Sampel Masuk: {total_n} / {TARGET_TOTAL_N} ({progress_val * 100:.1f}%)")
+
+    # 4 Metric KPI Cards Neumorphic (Proporsional, Rapi, Sejajar)
+    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+    m_col1.metric(
+        "Target Power Analysis",
+        f"{TARGET_TOTAL_N} Total",
+        delta=f"{TARGET_N} / varian",
+        delta_color="off",
+    )
+    m_col2.metric(
+        "Total Responden",
+        f"{total_n} / {TARGET_TOTAL_N}",
+        delta=f"{progress_val * 100:.1f}%",
+    )
+    m_col3.metric(
+        "Kelompok Luring (A)",
+        f"{n_a} / {TARGET_N}",
+        delta="Tercapai" if n_a >= TARGET_N else f"Kurang {TARGET_N - n_a}",
+    )
+    m_col4.metric(
+        "Kelompok Daring (B)",
+        f"{n_b} / {TARGET_N}",
+        delta="Tercapai" if n_b >= TARGET_N else f"Kurang {TARGET_N - n_b}",
+    )
+
+    # Gatekeeping Sampel
+    if min(n_a, n_b) < MIN_N:
+        st.error(
+            f"Sampel belum mencukupi untuk menjalankan uji Mann-Whitney U (minimum {MIN_N} per varian).  \n"
+            f"Kondisi saat ini: Luring n={n_a}, Daring n={n_b}.  \n"
+            "Isi kuesioner pada tab formulir survei atau gunakan tombol 'Injeksi Data Uji' di atas."
+        )
+    else:
+        if min(n_a, n_b) < TARGET_N:
+            st.warning(
+                f"Ukuran sampel (Luring: {n_a}, Daring: {n_b}) belum mencapai target Power Analysis (minimum {TARGET_N} per varian). "
+                "Hasil inferensial masih bersifat tentatif."
+            )
+
+        # Caching hasil uji 60 detik
+        now = time.time()
+        if (
+            st.session_state["last_result"] is None
+            or (now - st.session_state["last_result_time"]) > 60
+        ):
+            res = run_mann_whitney(scores_a, scores_b, alpha=0.05)
+            st.session_state["last_result"] = res
+            st.session_state["last_result_time"] = now
+        else:
+            res = st.session_state["last_result"]
+
+        st.markdown("---")
+        st.subheader("2. Hasil Uji Hipotesis Utama (Mann-Whitney U)")
+        st.caption(f"Kolom Metrik: {res.outcome_column} | Taraf Signifikansi alpha = {res.alpha}")
+
+        # KPI Cards (2 baris x 4 kolom)
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        kpi1.metric("Median Luring (A)", f"{res.median_a:.1f}", help="Skala Likert 1-5")
+        kpi2.metric("Median Daring (B)", f"{res.median_b:.1f}", help="Skala Likert 1-5")
+        kpi3.metric("Statistik Uji (U)", f"{res.statistic:.1f}")
+        p_val_display = f"{res.p_value:.4f}" if res.p_value >= 0.0001 else "< 0.0001"
+        kpi4.metric(
+            "p-value (Dua Arah)",
+            p_val_display,
+            delta="Signifikan (p < 0.05)" if res.p_value < res.alpha else "Tidak Signifikan",
+            delta_color="normal" if res.p_value < res.alpha else "inverse",
+        )
+
+        kpi5, kpi6, kpi7, kpi8 = st.columns(4)
+        kpi5.metric("Effect Size (r_B)", f"{res.effect_size:+.3f}", help="Korelasi Rank-Biserial (-1 s.d. +1)")
+        kpi6.metric("95% CI (Hodges-Lehmann)", f"[{res.ci_lower:+.2f}, {res.ci_upper:+.2f}]", help="Bootstrap Resampling")
+        kpi7.metric("Sampel Varian A (Luring)", f"N = {res.n_a}")
+        kpi8.metric("Sampel Varian B (Daring)", f"N = {res.n_b}")
+
+        # Keputusan Formal
+        st.markdown("")
+        if res.decision == "tolak H0":
+            st.success(
+                f"### Keputusan: Tolak H0  \n\n"
+                f"{res.interpretation}  \n"
+                f"Median Luring ({res.median_a}) berbeda nyata dengan Median Daring ({res.median_b}) pada tingkat kepercayaan 95%."
+            )
+        else:
+            st.info(
+                f"### Keputusan: Gagal Menolak H0  \n\n"
+                f"{res.interpretation}  \n"
+                f"Data empiris belum cukup untuk menunjukkan perbedaan kepuasan belajar antara metode Luring dan Daring pada alpha 0.05."
             )
 
         st.markdown("---")
-        st.write("### Kuesioner Minat & Persepsi Mahasiswa")
+        st.subheader("3. Distribusi Skor")
 
-        with st.form("survey_form"):
-            score_wtp = st.slider(
-                "1. Seberapa tinggi minat dan kesediaan Anda mengikuti program ini? (Skala 1 - 10)",
-                min_value=1,
-                max_value=10,
-                value=6,
-                help="1 = Sangat tidak berminat, 10 = Sangat berminat dan siap mendaftar."
+        tab_viz1, tab_viz2 = st.tabs(["Distribusi Frekuensi (%)", "Box Plot Sebaran"])
+
+        df_plot = pd.DataFrame(
+            [{"Varian": "Varian A (Luring)", "Skor": s} for s in scores_a]
+            + [{"Varian": "Varian B (Daring)", "Skor": s} for s in scores_b]
+        )
+
+        with tab_viz1:
+            dist_data = []
+            for v_name, s_list in [("Varian A (Luring)", scores_a), ("Varian B (Daring)", scores_b)]:
+                n_total = len(s_list)
+                for score_val in [1, 2, 3, 4, 5]:
+                    cnt = s_list.count(score_val)
+                    pct = (cnt / n_total * 100) if n_total > 0 else 0
+                    dist_data.append({"Varian": v_name, "Skor": f"Skor {score_val}", "Proporsi (%)": pct, "Jumlah": cnt})
+
+            df_dist = pd.DataFrame(dist_data)
+            fig_bar = px.bar(
+                df_dist,
+                x="Skor",
+                y="Proporsi (%)",
+                color="Varian",
+                barmode="group",
+                color_discrete_map={"Varian A (Luring)": "#4f46e5", "Varian B (Daring)": "#0284c7"},
+                hover_data=["Jumlah"],
+                title="Distribusi Proporsi Skor Likert (sat_overall)",
             )
-
-            perceived_trust = st.select_slider(
-                "2. Seberapa percaya Anda terhadap kredibilitas dan kualitas program di atas?",
-                options=[1, 2, 3, 4, 5],
-                value=3,
-                format_func=lambda x: f"{x} - " + ["Sangat Ragu", "Ragu", "Netral", "Percaya", "Sangat Percaya"][x-1]
+            # Garis horizontal saja yang jelas dan kontras di atas background neumorphic
+            fig_bar.update_xaxes(
+                showgrid=False,
+                linecolor="#94a3b8",
             )
-
-            clicked_signup = st.checkbox(
-                "Saya ingin mendaftar sesi webinar pengenalan gratis dan menerima silabus lengkap (Klik Konversi)",
-                value=False
+            fig_bar.update_yaxes(
+                showgrid=True,
+                gridcolor="#94a3b8",
+                gridwidth=1.3,
+                griddash="dot",
+                zeroline=True,
+                zerolinecolor="#64748b",
+                linecolor="#94a3b8",
             )
+            fig_bar.update_layout(
+                yaxis_title="Proporsi (%)",
+                xaxis_title="Tingkat Skor",
+                paper_bgcolor="#eef2f6",
+                plot_bgcolor="#eef2f6",
+                font=dict(color="#1e293b", family="Inter, sans-serif"),
+                legend=dict(bgcolor="rgba(238, 242, 246, 0.8)", bordercolor="rgba(163, 177, 198, 0.5)", borderwidth=1),
+                margin=dict(t=40, b=40, l=40, r=40),
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-            submitted = st.form_submit_button("Kirim Jawaban Survei")
+        with tab_viz2:
+            fig_box = px.box(
+                df_plot,
+                x="Varian",
+                y="Skor",
+                color="Varian",
+                points="all",
+                color_discrete_map={"Varian A (Luring)": "#4f46e5", "Varian B (Daring)": "#0284c7"},
+                title="Sebaran Skor Kepuasan Keseluruhan",
+            )
+            fig_box.update_yaxes(
+                showgrid=True,
+                gridcolor="#94a3b8",
+                gridwidth=1.3,
+                griddash="dot",
+                linecolor="#94a3b8",
+                range=[0.5, 5.5],
+            )
+            fig_box.update_xaxes(
+                showgrid=False,
+                linecolor="#94a3b8",
+            )
+            fig_box.update_layout(
+                paper_bgcolor="#eef2f6",
+                plot_bgcolor="#eef2f6",
+                font=dict(color="#1e293b", family="Inter, sans-serif"),
+                legend=dict(bgcolor="rgba(238, 242, 246, 0.8)", bordercolor="rgba(163, 177, 198, 0.5)", borderwidth=1),
+                margin=dict(t=40, b=40, l=40, r=40),
+            )
+            st.plotly_chart(fig_box, use_container_width=True)
 
-            if submitted:
-                elapsed_sec = round(time.time() - st.session_state.start_time, 1)
-                payload = {
-                    "session_id": st.session_state.session_id,
-                    "assigned_variant": variant,
-                    "willingness_to_pay": int(score_wtp),
-                    "perceived_trust": int(perceived_trust),
-                    "clicked_signup": bool(clicked_signup),
-                    "time_spent_sec": float(elapsed_sec)
-                }
+        st.markdown("---")
+        st.subheader("4. Analisis Diagnostik 20 Butir")
 
-                # Simpan ke Supabase
-                success = insert_response(payload)
-                
-                # Simpan juga ke cache lokal untuk pengujian tanpa DB
-                if st.session_state.local_cache_df.empty:
-                    st.session_state.local_cache_df = pd.DataFrame([payload])
-                else:
-                    st.session_state.local_cache_df = pd.concat(
-                        [st.session_state.local_cache_df, pd.DataFrame([payload])], 
-                        ignore_index=True
-                    )
+        all_item_scores = fetch_all_item_scores()
+        item_rows = describe_items(all_item_scores)
 
-                if success:
-                    st.session_state.survey_submitted = True
-                    st.rerun()
-                else:
-                    st.error("Gagal menyimpan data ke database. Silakan coba lagi.")
+        # Mapping metadata butir
+        item_meta_dict = {}
+        for dim_title, items in DIMENSIONS:
+            for no_str, col_name, ta, tb in items:
+                item_meta_dict[col_name] = {"no": no_str, "dimensi": dim_title}
 
+        desc_table_data = []
+        for r in item_rows:
+            col_id = r["item"]
+            meta = item_meta_dict.get(col_id, {"no": "-", "dimensi": "-"})
+            desc_table_data.append({
+                "No": meta["no"],
+                "Kode Kolom": col_id,
+                "Dimensi": meta["dimensi"],
+                "N Luring": r["n_a"],
+                "Median A": r["median_a"],
+                "N Daring": r["n_b"],
+                "Median B": r["median_b"],
+                "Selisih (A - B)": (r["median_a"] - r["median_b"]) if r["median_a"] is not None and r["median_b"] is not None else None,
+            })
 
-# ==============================================================================
-# HALAMAN 2: DASHBOARD ANALISIS A/B (ADMIN / DOSEN)
-# ==============================================================================
-elif menu == "Dashboard Analisis A/B (Dosen/Admin)":
-    st.title("Dashboard Analisis Inferensial A/B Testing")
-    st.caption("Panel Evaluasi Hipotesis Statistik & Kontrak Antar-Layer")
+        df_desc = pd.DataFrame(desc_table_data)
+        st.dataframe(df_desc, use_container_width=True, hide_index=True)
 
-    # Autentikasi Dasar
-    st.sidebar.subheader("Autentikasi Akses")
-    pwd_input = st.sidebar.text_input("Password Admin:", type="password", value="")
-
-    if pwd_input != ADMIN_PASSWORD:
-        st.warning("Halaman ini diproteksi. Masukkan password admin pada panel sidebar kiri untuk membuka hasil analisis.")
-        st.info("Petunjuk evaluasi: Password default lokal adalah `admin123`.")
-    else:
-        st.success("Autentikasi berhasil. Akses penuh ke data analitik dibuka.")
-
-        # Tombol aksi sinkronisasi data
-        col_btn1, col_btn2, col_btn3 = st.columns([2, 2, 3])
-        with col_btn1:
-            if st.button("Tarik Data dari Supabase"):
-                df_cloud = fetch_all_responses()
-                if not df_cloud.empty:
-                    st.session_state.local_cache_df = df_cloud
-                    st.toast(f"Berhasil memuat {len(df_cloud)} baris dari cloud.")
-                else:
-                    st.warning("Database Supabase masih kosong atau belum terhubung.")
-
-        with col_btn2:
-            if st.button("Injeksi Data Simulasi (N=260)"):
-                df_sim = generate_simulated_responses(n_per_variant=130)
-                st.session_state.local_cache_df = df_sim
-                st.toast("Data simulasi N=260 berhasil dimuat ke cache analisis.")
-
-        with col_btn3:
-            target_n_per_variant = compute_sample_size(effect_size=0.35, alpha=0.05, power=0.80)
-            st.metric("Target Sampel Minimum (Power Analysis)", f"{target_n_per_variant} per varian (Total {target_n_per_variant*2})")
-
-        df_current = st.session_state.local_cache_df
-
-        if df_current.empty or len(df_current) < 6:
-            st.info("Data belum cukup untuk menjalankan uji statistik. Silakan isi survei beberapa kali atau tekan tombol 'Injeksi Data Simulasi (N=260)' di atas.")
-        else:
-            # Eksekusi Analisis Statistik via stats_engine.py
-            results = analyze_ab_test(df_current, alpha=0.05)
-
-            if results.get("status") == "success":
-                st.markdown("---")
-                st.subheader("1. Ringkasan Sampel & Statistik Deskriptif")
-                
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Total Responden", results["sample_size"]["total"])
-                m2.metric("Sampel Varian A (Kontrol)", results["sample_size"]["n_a"])
-                m3.metric("Sampel Varian B (Treatment)", results["sample_size"]["n_b"])
-                diff = results["descriptive"]["diff_mean"]
-                m4.metric("Selisih Rata-rata (B - A)", f"{diff:+.2f}")
-
-                col_stat1, col_stat2 = st.columns(2)
-                with col_stat1:
-                    st.markdown("**Varian A (Kontrol - Polos):**")
-                    st.write(f"- Rata-rata Minat: **{results['descriptive']['mean_a']}** (SD: {results['descriptive']['std_a']})")
-                    st.write(f"- Conversion Rate Klik: **{results['proportion_test']['cr_a']}%**")
-                with col_stat2:
-                    st.markdown("**Varian B (Treatment - Social Proof):**")
-                    st.write(f"- Rata-rata Minat: **{results['descriptive']['mean_b']}** (SD: {results['descriptive']['std_b']})")
-                    st.write(f"- Conversion Rate Klik: **{results['proportion_test']['cr_b']}%**")
-
-                st.markdown("---")
-                st.subheader("2. Pemeriksaan Asumsi Statistik")
-                asm = results["assumptions"]
-                c_asm1, c_asm2 = st.columns(2)
-                with c_asm1:
-                    st.markdown("**Uji Normalitas (Shapiro-Wilk):**")
-                    st.write(f"- p-value Grup A: `{asm['shapiro_a_p']}`")
-                    st.write(f"- p-value Grup B: `{asm['shapiro_b_p']}`")
-                    st.caption("Asumsi terpenuhi jika p-value > 0.05.")
-                with c_asm2:
-                    st.markdown("**Uji Homogenitas Varians (Levene's Test):**")
-                    st.write(f"- p-value Levene: `{asm['levene_p']}`")
-                    st.write(f"- Varians Homogen: `{'Ya' if asm['is_equal_var'] else 'Tidak (Pakai Koreksi Welch)'}`")
-
-                st.markdown("---")
-                st.subheader("3. Uji Hipotesis Utama (Two-Sample Welch's t-test)")
-                test_c = results["continuous_test"]
-
-                col_res1, col_res2, col_res3 = st.columns(3)
-                col_res1.metric("Statistik Uji (t)", test_c["t_statistic"])
-                col_res2.metric("p-value (One-tailed)", test_c["p_value"])
-                ci = test_c["ci_95"]
-                col_res3.metric("95% Confidence Interval", f"[{ci[0]}, {ci[1]}]")
-
-                # Box Keputusan Formal Wajib Sesuai Rubrik
-                if test_c["decision"] == "Tolak H₀":
-                    st.success(f"### Keputusan: {test_c['decision']}\n\n{test_c['conclusion']}")
-                else:
-                    st.warning(f"### Keputusan: {test_c['decision']}\n\n{test_c['conclusion']}")
-
-                st.markdown("---")
-                st.subheader("4. Uji Proporsi Konversi Klik (Z-Test)")
-                prop = results["proportion_test"]
-                st.write(f"- Statistik Z: `{prop['z_statistic']}` | p-value: `{prop['p_value']}`")
-                st.write(f"- Keputusan Uji Proporsi: **{prop['decision']}**")
-
-                st.markdown("---")
-                with st.expander("Lihat Data Mentah (50 Baris Terakhir)"):
-                    st.dataframe(df_current.tail(50), use_container_width=True)
-
+        st.markdown("---")
+        with st.expander("Data Mentah Responden"):
+            df_raw = fetch_all_responses()
+            if not df_raw.empty:
+                st.dataframe(df_raw.tail(50), use_container_width=True)
             else:
-                st.warning(results.get("message", "Perhitungan statistik tidak dapat diselesaikan."))
+                st.caption("Data mentah kosong.")
