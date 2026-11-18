@@ -1,23 +1,27 @@
-"""Uji kepatuhan kode terhadap Interface Contract (docs/interface-contract.md).
+"""Uji kepatuhan kode terhadap Interface Contract v1.1 (docs/interface-contract.md).
 
 Jalankan dari root repo:  pytest tests/ -v
-Bagian database bersifat opt-in (lihat bawah) karena menulis ke database sungguhan.
+Uji database sungguhan bersifat opt-in (RUN_DB_TESTS=1) karena menulis ke database.
 """
 import os
+import re
+from pathlib import Path
+
 import pytest
 
-# Sesuaikan jalur impor ini bila nama modul/kelas di kode tim berbeda
-from src.analysis.stats_engine import (
-    run_mann_whitney, InvalidScoreError, InsufficientSampleError,
-)
 from src.analysis.simulate_data import generate_responses
+from src.analysis.stats_engine import (
+    InsufficientSampleError, InvalidScoreError, describe_items, run_mann_whitney,
+)
+from src.app.questions import DIMENSIONS
+from src.contract import ITEM_COLUMNS, MIN_N, PRIMARY_ITEM
 
-# Field output Bagian 2 kontrak
+ROOT = Path(__file__).resolve().parent.parent
+
 OUTPUT_FIELDS = [
-    "test_name", "n_a", "n_b", "median_a", "median_b", "statistic", "p_value",
+    "test_name", "outcome_column", "n_a", "n_b", "median_a", "median_b", "statistic", "p_value",
     "effect_size", "ci_lower", "ci_upper", "alpha", "decision", "interpretation",
 ]
-MIN_N = 10  # samakan dengan kontrak Bagian 6
 
 
 @pytest.fixture(scope="module")
@@ -27,37 +31,60 @@ def sim():
 
 @pytest.fixture(scope="module")
 def result(sim):
-    a = sim.loc[sim.variant == "A", "score"].tolist()
-    b = sim.loc[sim.variant == "B", "score"].tolist()
+    a = sim.loc[sim.variant_group == "A", PRIMARY_ITEM].tolist()
+    b = sim.loc[sim.variant_group == "B", PRIMARY_ITEM].tolist()
     return run_mann_whitney(a, b)
 
 
-# ---- Input / data simulasi (kontrak Bagian 1) ----
+# ---- Definisi butir (kontrak Bagian 1) ----
+def test_twenty_unique_items():
+    assert len(ITEM_COLUMNS) == 20 and len(set(ITEM_COLUMNS)) == 20
+    assert ITEM_COLUMNS[0] == PRIMARY_ITEM == "sat_overall"
+
+
+def test_questions_match_contract_items():
+    cols = [col for _, items in DIMENSIONS for _no, col, _a, _b in items]
+    assert tuple(cols) == ITEM_COLUMNS
+    for _, items in DIMENSIONS:
+        for _no, _col, ta, tb in items:
+            assert ta.strip() and tb.strip()
+
+
+def test_schema_sql_matches_contract():
+    sql = (ROOT / "src" / "infra" / "schema.sql").read_text()
+    assert "survey_responses" in sql
+    assert re.search(r"session_id\s+VARCHAR\(64\)\s+NOT NULL\s+UNIQUE", sql)
+    assert "variant_group IN ('A', 'B')" in sql
+    for c in ITEM_COLUMNS:
+        assert f"{c} BETWEEN 1 AND 5" in sql, c
+
+
+# ---- Data simulasi ----
 def test_simulated_columns(sim):
-    assert {"session_id", "variant", "score"} <= set(sim.columns)
+    assert list(sim.columns) == ["session_id", "variant_group", *ITEM_COLUMNS]
 
 
 def test_simulated_variant_values(sim):
-    assert set(sim["variant"].unique()) <= {"A", "B"}
+    assert set(sim["variant_group"].unique()) == {"A", "B"}
 
 
 def test_simulated_score_range(sim):
-    assert sim["score"].between(1, 5).all()
-    assert str(sim["score"].dtype).startswith("int")
+    for c in ITEM_COLUMNS:
+        assert sim[c].between(1, 5).all() and str(sim[c].dtype).startswith("int")
 
 
 def test_simulated_session_unique(sim):
-    assert sim["session_id"].is_unique
+    assert sim["session_id"].is_unique and sim["session_id"].str.len().max() <= 64
 
 
-# ---- Output analisis (kontrak Bagian 2) ----
+# ---- Output analisis ----
 @pytest.mark.parametrize("field", OUTPUT_FIELDS)
 def test_output_has_field(result, field):
     assert hasattr(result, field)
 
 
-def test_test_name(result):
-    assert result.test_name == "mann_whitney_u"
+def test_test_name_and_outcome(result):
+    assert result.test_name == "mann_whitney_u" and result.outcome_column == "sat_overall"
 
 
 def test_p_value_range(result):
@@ -69,11 +96,18 @@ def test_ci_order(result):
 
 
 def test_decision_rule(result):
-    expected = "tolak H0" if result.p_value < result.alpha else "gagal menolak H0"
-    assert result.decision == expected
+    assert result.decision == ("tolak H0" if result.p_value < result.alpha else "gagal menolak H0")
 
 
-# ---- Perilaku saat gagal (kontrak Bagian 6) ----
+def test_describe_items_shape(sim):
+    data = {c: {v: sim.loc[sim.variant_group == v, c].tolist() for v in "AB"} for c in ITEM_COLUMNS}
+    rows = describe_items(data)
+    assert [r["item"] for r in rows] == list(ITEM_COLUMNS)
+    assert all(set(r) == {"item", "n_a", "n_b", "median_a", "median_b"} for r in rows)
+    assert rows[0]["n_a"] == 40 and rows[0]["n_b"] == 40
+
+
+# ---- Perilaku saat gagal ----
 def test_small_sample_raises():
     with pytest.raises(InsufficientSampleError):
         run_mann_whitney([3] * (MIN_N - 1), [4] * MIN_N)
@@ -90,20 +124,19 @@ def test_float_score_raises():
         run_mann_whitney([3.5] * MIN_N, [4] * MIN_N)
 
 
-# ---- Database (OPT-IN) ----
-# Menulis ke database sungguhan. Jalankan hanya pada proyek/tabel uji:
-#   RUN_DB_TESTS=1 pytest tests/ -v
-# Sesuaikan nama modul/fungsi/exception dengan db.py tim Infrastructure.
+# ---- Database ----
 db_only = pytest.mark.skipif(os.getenv("RUN_DB_TESTS") != "1", reason="set RUN_DB_TESTS=1 untuk uji database")
+ANSWERS = {c: 3 for c in ITEM_COLUMNS}
 
 
 @db_only
 def test_db_insert_valid_and_duplicate():
     from src.app import db
+    from src.errors import DuplicateSessionError
     sid = f"test_{os.urandom(4).hex()}"
-    assert isinstance(db.insert_response(sid, "A", 4), str)
-    with pytest.raises(db.DuplicateSessionError):
-        db.insert_response(sid, "A", 4)
+    assert isinstance(db.insert_response(sid, "A", ANSWERS), str)
+    with pytest.raises(DuplicateSessionError):
+        db.insert_response(sid, "A", ANSWERS)
 
 
 @db_only
@@ -111,11 +144,19 @@ def test_db_insert_valid_and_duplicate():
 def test_db_rejects_invalid(variant, score):
     from src.app import db
     with pytest.raises(Exception):
-        db.insert_response(f"test_{os.urandom(4).hex()}", variant, score)
+        db.insert_response(f"test_{os.urandom(4).hex()}", variant, {**ANSWERS, "sat_overall": score})
 
 
 @db_only
-def test_db_fetch_scores_shape():
+def test_db_rejects_incomplete():
     from src.app import db
-    data = db.fetch_scores()
-    assert set(data) == {"A", "B"}
+    from src.errors import IncompleteResponseError
+    with pytest.raises(IncompleteResponseError):
+        db.insert_response(f"test_{os.urandom(4).hex()}", "A", {"sat_overall": 3})
+
+
+@db_only
+def test_db_fetch_shapes():
+    from src.app import db
+    assert set(db.fetch_scores()) == {"A", "B"}
+    assert set(db.fetch_all_item_scores()) == set(ITEM_COLUMNS)
