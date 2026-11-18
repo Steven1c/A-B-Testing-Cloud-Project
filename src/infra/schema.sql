@@ -1,15 +1,13 @@
--- ====================================================================
--- SKEMA DATABASE: PLATFORM SURVEI DAN UJI A/B
--- Topik 3: Kepuasan Pembelajaran: Luring (Varian A) vs Daring (Varian B)
--- Eksekusi skrip ini di SQL Editor Supabase untuk inisialisasi tabel
--- ====================================================================
-
--- 1. Buat tabel terpadu survey_responses
+SKEMA DATABASE
+Kepuasan Pembelajaran: Luring (Varian A) vs Daring (Varian B)
+    
+-- 1. Buat tabel survey_responses
 CREATE TABLE IF NOT EXISTS public.survey_responses (
     -- Identitas respon & sesi anonim
     response_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id VARCHAR(64) NOT NULL UNIQUE,
     variant_group CHAR(1) NOT NULL CHECK (variant_group IN ('A', 'B')),
+    variant CHAR(1) CHECK (variant IN ('A', 'B')),
     
     -- Metrik Utama Inferensial H0 vs H1 (Skala Likert 1-5)
     score SMALLINT NOT NULL CHECK (score BETWEEN 1 AND 5),
@@ -47,12 +45,30 @@ CREATE TABLE IF NOT EXISTS public.survey_responses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Index untuk optimasi query agregasi analisis A/B
+-- 2. Trigger sinkronisasi otomatis antara variant dan variant_group
+CREATE OR REPLACE FUNCTION public.sync_variant_columns()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.variant_group IS NULL AND NEW.variant IS NOT NULL THEN
+        NEW.variant_group := NEW.variant;
+    ELSIF NEW.variant IS NULL AND NEW.variant_group IS NOT NULL THEN
+        NEW.variant := NEW.variant_group;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_variant_columns
+BEFORE INSERT ON public.survey_responses
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_variant_columns();
+
+-- 3. Index untuk optimasi query agregasi analisis A/B
 CREATE INDEX IF NOT EXISTS idx_survey_variant ON public.survey_responses (variant_group);
 CREATE INDEX IF NOT EXISTS idx_survey_created_at ON public.survey_responses (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_survey_score ON public.survey_responses (score);
 
--- 3. Row Level Security (RLS)
+-- 4. Row Level Security (RLS)
 ALTER TABLE public.survey_responses ENABLE ROW LEVEL SECURITY;
 
 -- Izinkan publik/responden anonim memasukkan data survei
