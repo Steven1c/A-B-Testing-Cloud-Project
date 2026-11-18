@@ -10,6 +10,8 @@ import sys
 import time
 import uuid
 import random
+import base64
+from pathlib import Path
 from typing import Dict, Any, List
 
 import streamlit as st
@@ -68,7 +70,43 @@ st.set_page_config(
 # Injeksi Tema UI Neumorphism Murni (Soft UI, Zero Slop)
 # ------------------------------------------------------------------------------
 def apply_custom_style():
-    """Menginjeksi CSS Neumorphism murni tanpa garis solid dengan shadow kuat kanan-kiri-bawah."""
+    """Menginjeksi CSS Neumorphism murni dengan latar belakang tekstur kain sutra dan shadow kuat."""
+    bg_path = Path(__file__).parent / "assets" / "silk_bg.png"
+    silk_bg_css = ""
+    if bg_path.exists():
+        try:
+            b64_data = base64.b64encode(bg_path.read_bytes()).decode("utf-8")
+            silk_bg_css = f"""
+            html, body, .stApp {{
+                background-color: #f2f2f5 !important;
+                background-image: 
+                    linear-gradient(135deg, rgba(245, 245, 248, 0.40) 0%, rgba(238, 238, 242, 0.60) 100%),
+                    url("data:image/png;base64,{b64_data}") !important;
+                background-size: cover !important;
+                background-position: center center !important;
+                background-repeat: no-repeat !important;
+                background-attachment: fixed !important;
+                color: #1e293b !important;
+            }}
+            """
+        except Exception:
+            silk_bg_css = ""
+
+    if not silk_bg_css:
+        silk_bg_css = """
+        html, body, .stApp {
+            background-color: #f2f2f5 !important;
+            background-image: 
+                radial-gradient(ellipse 90% 65% at 20% 30%, rgba(255, 255, 255, 0.95) 0%, transparent 55%),
+                radial-gradient(ellipse 85% 60% at 80% 75%, rgba(215, 215, 226, 0.55) 0%, transparent 60%),
+                linear-gradient(135deg, #fdfdfd 0%, #f3f3f6 35%, #e7e7ed 70%, #dcdce2 100%) !important;
+            background-attachment: fixed !important;
+            color: #1e293b !important;
+        }
+        """
+
+    st.markdown(f"<style>{silk_bg_css}</style>", unsafe_allow_html=True)
+
     st.markdown(
         """
         <style>
@@ -90,43 +128,59 @@ def apply_custom_style():
             font-style: normal !important;
         }
 
-        /* 1. Latar Belakang Canvas Neumorphism */
-        .stApp {
-            background-color: #eef2f6 !important;
-            color: #1e293b !important;
+        /* Tembuskan seluruh container pembungkus bawaan Streamlit agar background sutra terlihat */
+        [data-testid="stAppViewContainer"],
+        [data-testid="stHeader"], 
+        section[data-testid="stMain"], 
+        [data-testid="stMainBlockContainer"],
+        .block-container {
+            background: transparent !important;
+            background-color: transparent !important;
         }
 
-        /* 2. Sidebar Neumorphic */
+        /* 2. Sidebar Neumorphic (Kunci lebar minimal saat terbuka, resize handle disembunyikan) */
+        section[data-testid="stSidebar"]:not([data-collapsed="true"]) {
+            min-width: 300px !important;
+            width: 310px !important;
+        }
+
         section[data-testid="stSidebar"] {
-            background-color: #eef2f6 !important;
-            border-right: none !important;
-            box-shadow: 4px 0 16px rgba(163, 177, 198, 0.35) !important;
+            background: rgba(248, 248, 251, 0.90) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-right: 1px solid rgba(220, 220, 230, 0.5) !important;
+            box-shadow: 4px 0 20px rgba(180, 180, 192, 0.25) !important;
         }
 
-        /* 3. Card Neumorphic (Shadow Kuat Kanan, Kiri, Bawah, Tanpa Garis Solid) */
+        [data-testid="stSidebarResizeHandle"] {
+            display: none !important;
+        }
+
+        /* 3. Card Neumorphic (Shadow Lembut Silk, Tanpa Garis Solid) */
         div[data-testid="stVerticalBlockBorderWrapper"] {
-            background: #eef2f6 !important;
+            background: rgba(242, 242, 245, 0.94) !important;
+            backdrop-filter: blur(6px) !important;
             border: none !important;
             border-radius: 20px !important;
             box-shadow: 
-                0 12px 24px rgba(163, 177, 198, 0.6),
-                8px 8px 18px rgba(163, 177, 198, 0.65),
-                -6px 8px 16px rgba(163, 177, 198, 0.35),
-                -8px -8px 20px rgba(255, 255, 255, 0.95) !important;
+                0 12px 24px rgba(180, 180, 192, 0.45),
+                8px 8px 18px rgba(180, 180, 192, 0.5),
+                -6px 8px 16px rgba(180, 180, 192, 0.25),
+                -8px -8px 20px rgba(255, 255, 255, 0.98) !important;
             padding: 22px !important;
             margin-bottom: 20px !important;
         }
 
         /* 4. Expander Neumorphic */
         div[data-testid="stExpander"] {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             border-radius: 18px !important;
             border: none !important;
             box-shadow: 
-                0 10px 20px rgba(163, 177, 198, 0.55),
-                6px 6px 14px rgba(163, 177, 198, 0.6),
-                -5px 6px 12px rgba(163, 177, 198, 0.3),
-                -6px -6px 16px rgba(255, 255, 255, 0.95) !important;
+                0 10px 20px rgba(180, 180, 192, 0.4),
+                6px 6px 14px rgba(180, 180, 192, 0.45),
+                -5px 6px 12px rgba(180, 180, 192, 0.2),
+                -6px -6px 16px rgba(255, 255, 255, 0.98) !important;
             margin-bottom: 16px !important;
             overflow: hidden !important;
         }
@@ -136,25 +190,41 @@ def apply_custom_style():
         }
 
         div[data-testid="stExpander"] summary {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             border: none !important;
             font-weight: 600 !important;
             color: #0f172a !important;
             padding: 14px 20px !important;
         }
 
-        /* 5. Metric KPI Cards Neumorphic */
+        /* 5. Metric KPI Cards Neumorphic (Tinggi Seragam, Vertikal Rata Tengah) */
+        div[data-testid="stColumn"] {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        div[data-testid="stColumn"] > div {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 1 auto !important;
+        }
+
         div[data-testid="stMetric"] {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             border-radius: 18px !important;
             border: none !important;
             box-shadow: 
-                0 10px 20px rgba(163, 177, 198, 0.55),
-                6px 6px 14px rgba(163, 177, 198, 0.6),
-                -5px 6px 12px rgba(163, 177, 198, 0.3),
-                -6px -6px 16px rgba(255, 255, 255, 0.95) !important;
+                0 10px 20px rgba(180, 180, 192, 0.4),
+                6px 6px 14px rgba(180, 180, 192, 0.45),
+                -5px 6px 12px rgba(180, 180, 192, 0.2),
+                -6px -6px 16px rgba(255, 255, 255, 0.98) !important;
             padding: 16px 20px !important;
-            min-height: 85px !important;
+            min-height: 95px !important;
+            height: 100% !important;
+            flex: 1 1 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
         }
 
         div[data-testid="stMetricLabel"] {
@@ -172,13 +242,13 @@ def apply_custom_style():
 
         /* 6. Tombol Reguler Neumorphic */
         div.stButton > button {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             color: #1e293b !important;
             border: none !important;
             border-radius: 14px !important;
             box-shadow: 
-                5px 5px 12px rgba(163, 177, 198, 0.6),
-                -5px -5px 12px rgba(255, 255, 255, 0.9) !important;
+                5px 5px 12px rgba(180, 180, 192, 0.45),
+                -5px -5px 12px rgba(255, 255, 255, 0.98) !important;
             font-weight: 600 !important;
             padding: 10px 22px !important;
             transition: all 0.15s ease-in-out !important;
@@ -187,14 +257,14 @@ def apply_custom_style():
         div.stButton > button:hover {
             color: #4f46e5 !important;
             box-shadow: 
-                3px 3px 8px rgba(163, 177, 198, 0.6),
-                -3px -3px 8px rgba(255, 255, 255, 0.9) !important;
+                3px 3px 8px rgba(180, 180, 192, 0.45),
+                -3px -3px 8px rgba(255, 255, 255, 0.98) !important;
         }
 
         div.stButton > button:active {
             box-shadow: 
-                inset 3px 3px 6px rgba(163, 177, 198, 0.6),
-                inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+                inset 3px 3px 6px rgba(180, 180, 192, 0.45),
+                inset -3px -3px 6px rgba(255, 255, 255, 0.98) !important;
         }
 
         /* 7. Tombol Aksi Utama (Accent Neumorphic) */
@@ -204,16 +274,16 @@ def apply_custom_style():
             border: none !important;
             border-radius: 14px !important;
             box-shadow: 
-                5px 5px 14px rgba(79, 70, 229, 0.4),
-                -3px -3px 10px rgba(255, 255, 255, 0.8) !important;
+                5px 5px 14px rgba(79, 70, 229, 0.35),
+                -3px -3px 10px rgba(255, 255, 255, 0.9) !important;
             font-weight: 600 !important;
         }
 
         div.stButton > button[kind="primary"]:hover {
             background: #4338ca !important;
             box-shadow: 
-                3px 3px 10px rgba(79, 70, 229, 0.5),
-                -2px -2px 8px rgba(255, 255, 255, 0.8) !important;
+                3px 3px 10px rgba(79, 70, 229, 0.45),
+                -2px -2px 8px rgba(255, 255, 255, 0.9) !important;
             color: #ffffff !important;
         }
 
@@ -231,13 +301,13 @@ def apply_custom_style():
         }
 
         div[role="radiogroup"] > label {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             border-radius: 14px !important;
             padding: 10px 18px !important;
             border: none !important;
             box-shadow: 
-                4px 4px 10px rgba(163, 177, 198, 0.55),
-                -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
+                4px 4px 10px rgba(180, 180, 192, 0.45),
+                -4px -4px 10px rgba(255, 255, 255, 0.98) !important;
             transition: all 0.15s ease !important;
             cursor: pointer !important;
             color: #1e293b !important;
@@ -247,18 +317,18 @@ def apply_custom_style():
         div[role="radiogroup"] > label:hover {
             color: #4f46e5 !important;
             box-shadow: 
-                2px 2px 6px rgba(163, 177, 198, 0.55),
-                -2px -2px 6px rgba(255, 255, 255, 0.9) !important;
+                2px 2px 6px rgba(180, 180, 192, 0.45),
+                -2px -2px 6px rgba(255, 255, 255, 0.98) !important;
         }
 
         /* 9. Input Fields (Sunken Neumorphic) */
         div[data-baseweb="input"] {
-            background-color: #eef2f6 !important;
+            background-color: #eeeff3 !important;
             border-radius: 14px !important;
             border: none !important;
             box-shadow: 
-                inset 4px 4px 8px rgba(163, 177, 198, 0.5),
-                inset -4px -4px 8px rgba(255, 255, 255, 0.9) !important;
+                inset 4px 4px 8px rgba(180, 180, 192, 0.4),
+                inset -4px -4px 8px rgba(255, 255, 255, 0.98) !important;
         }
 
         input[type="password"], input[type="text"] {
@@ -269,13 +339,13 @@ def apply_custom_style():
 
         /* 10. Alert Boxes Neumorphic */
         div[data-testid="stAlert"] {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             border-radius: 16px !important;
             border: none !important;
             box-shadow: 
-                0 8px 18px rgba(163, 177, 198, 0.45),
-                5px 5px 12px rgba(163, 177, 198, 0.5),
-                -5px -5px 14px rgba(255, 255, 255, 0.9) !important;
+                0 8px 18px rgba(180, 180, 192, 0.35),
+                5px 5px 12px rgba(180, 180, 192, 0.4),
+                -5px -5px 14px rgba(255, 255, 255, 0.98) !important;
             padding: 16px !important;
         }
 
@@ -290,28 +360,25 @@ def apply_custom_style():
             font-size: 0.9rem !important;
         }
 
-        div[data-testid="stProgress"] div[data-testid="stProgressBarTrack"],
         div[data-testid="stProgressBarTrack"] {
-            background-color: #eef2f6 !important;
+            background-color: #dcdcdf !important;
             border-radius: 12px !important;
             height: 16px !important;
-            padding: 2px !important;
+            padding: 0 !important;
             border: none !important;
             box-shadow: 
-                inset 3px 3px 6px rgba(163, 177, 198, 0.6),
-                inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+                inset 2px 2px 5px rgba(180, 180, 192, 0.45),
+                inset -2px -2px 5px rgba(255, 255, 255, 0.95) !important;
             overflow: hidden !important;
         }
 
-        div[data-testid="stProgress"] div[data-testid="stProgressBarTrack"] > div,
-        div[data-testid="stProgressBarTrack"] > div,
-        div[data-testid="stProgress"] div[role="progressbar"] > div,
-        div[data-testid="stProgress"] div[data-testid="stProgressBarTrack"] div {
+        /* HANYA fill bar langsung (child pertama dari stProgressBarTrack) */
+        div[data-testid="stProgressBarTrack"] > div {
             background-color: #10b981 !important;
             background: linear-gradient(90deg, #10b981 0%, #059669 100%) !important;
             border-radius: 10px !important;
             height: 100% !important;
-            box-shadow: 2px 2px 6px rgba(16, 185, 129, 0.4) !important;
+            box-shadow: none !important;
         }
 
         /* 12. Tabs Neumorphic */
@@ -325,12 +392,12 @@ def apply_custom_style():
         }
 
         button[data-baseweb="tab"][aria-selected="true"] {
-            background: #eef2f6 !important;
+            background: #f2f2f5 !important;
             border: none !important;
             color: #4f46e5 !important;
             box-shadow: 
-                inset 3px 3px 6px rgba(163, 177, 198, 0.5),
-                inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+                inset 3px 3px 6px rgba(180, 180, 192, 0.4),
+                inset -3px -3px 6px rgba(255, 255, 255, 0.98) !important;
         }
 
         /* Clean Neumorphic Badge */
@@ -338,11 +405,11 @@ def apply_custom_style():
             display: inline-block;
             padding: 5px 12px;
             border-radius: 10px;
-            background: #eef2f6;
+            background: #f2f2f5;
             border: none;
             box-shadow: 
-                3px 3px 7px rgba(163, 177, 198, 0.5),
-                -3px -3px 7px rgba(255, 255, 255, 0.9);
+                3px 3px 7px rgba(180, 180, 192, 0.4),
+                -3px -3px 7px rgba(255, 255, 255, 0.98);
             font-size: 0.75rem;
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -375,23 +442,30 @@ if "last_result" not in st.session_state:
     st.session_state["last_result"] = None
 if "last_result_time" not in st.session_state:
     st.session_state["last_result_time"] = 0
+if "admin_logged_in" not in st.session_state:
+    st.session_state["admin_logged_in"] = False
 
 
 # ------------------------------------------------------------------------------
 # Navigasi Sidebar
 # ------------------------------------------------------------------------------
 st.sidebar.markdown('<span class="clean-badge">NAVIGASI SISTEM</span>', unsafe_allow_html=True)
-st.sidebar.title("Platform A/B Testing")
+st.sidebar.title(":material/tune: Platform A/B Testing")
 menu = st.sidebar.radio(
     "Menu:",
     ["Formulir Survei", "Dashboard Analisis"],
+    format_func=lambda x: f":material/assignment: {x}" if "Formulir" in x else f":material/query_stats: {x}",
 )
 
-st.sidebar.markdown("---")
-sb_client = get_supabase()
-db_status_text = "Terhubung (Supabase DBaaS)" if sb_client is not None else "Mode Mock (In-Memory)"
-st.sidebar.caption(f"Status Database: **{db_status_text}**")
-st.sidebar.caption("Proyek Komputasi Awan - Topik 3")
+# Panel Akun Admin & Tombol Sign Out
+if st.session_state.get("admin_logged_in", False):
+    st.sidebar.markdown("---")
+    with st.sidebar.expander(":material/verified_user: Status Admin", expanded=True):
+        st.write("Masuk sebagai: **Dosen / Admin**")
+        if st.button("Keluar (Sign Out)", icon=":material/logout:", use_container_width=True):
+            st.session_state["admin_logged_in"] = False
+            st.toast("Berhasil keluar dari sesi admin.")
+            st.rerun()
 
 
 # ------------------------------------------------------------------------------
@@ -415,7 +489,7 @@ if menu == "Formulir Survei":
             st.caption("Data tersimpan anonim tanpa identitas pribadi untuk evaluasi statistik eksperimen.")
 
         st.markdown("")
-        if st.button("Mulai Sesi Baru", type="primary"):
+        if st.button("Mulai Sesi Baru", type="primary", icon=":material/refresh:"):
             st.session_state["session_id"] = uuid.uuid4().hex[:16]
             st.session_state["variant"] = random.choice(["A", "B"])
             st.session_state["step"] = "scenario"
@@ -426,7 +500,7 @@ if menu == "Formulir Survei":
     # Sub-view B: Step 1 — Halaman Stimulus Skenario
     elif st.session_state["step"] == "scenario":
         st.markdown('<span class="clean-badge">TAHAP 1 DARI 2: SKENARIO</span>', unsafe_allow_html=True)
-        st.title("Survei Kepuasan Pembelajaran")
+        st.title(":material/menu_book: Survei Kepuasan Pembelajaran")
         st.write("Perhatikan konteks metode pembelajaran yang Anda terima berikut ini:")
 
         if variant == "A":
@@ -513,19 +587,19 @@ if menu == "Formulir Survei":
             "lalu klik tombol di bawah untuk mengisi evaluasi kepuasan."
         )
 
-        if st.button("Mulai Kuesioner", type="primary", use_container_width=True):
+        if st.button("Mulai Kuesioner", type="primary", icon=":material/arrow_forward:", use_container_width=True):
             st.session_state["step"] = "questions"
             st.rerun()
 
     # Sub-view C: Step 2 — Halaman Kuesioner (20 Butir)
     elif st.session_state["step"] == "questions":
         st.markdown('<span class="clean-badge">TAHAP 2 DARI 2: KUESIONER</span>', unsafe_allow_html=True)
-        st.title("Kuesioner Kepuasan Pembelajaran")
+        st.title(":material/assignment: Kuesioner Kepuasan Pembelajaran")
         st.caption(f"Metode yang dievaluasi: **{variant_label}**")
 
         c_back, c_status = st.columns([1, 4])
         with c_back:
-            if st.button("Kembali ke Skenario"):
+            if st.button("Kembali ke Skenario", icon=":material/arrow_back:"):
                 st.session_state["step"] = "scenario"
                 st.rerun()
 
@@ -612,7 +686,7 @@ if menu == "Formulir Survei":
         if not is_complete:
             st.warning("Jawab seluruh 20 pertanyaan sebelum mengirimkan formulir.")
 
-        if st.button("Kirim Jawaban", type="primary", disabled=not is_complete, use_container_width=True):
+        if st.button("Kirim Jawaban", type="primary", icon=":material/send:", disabled=not is_complete, use_container_width=True):
             try:
                 insert_response(
                     session_id=st.session_state["session_id"],
@@ -634,31 +708,35 @@ if menu == "Formulir Survei":
 # ------------------------------------------------------------------------------
 elif menu == "Dashboard Analisis":
     st.markdown('<span class="clean-badge">PANEL ANALITIK</span>', unsafe_allow_html=True)
-    st.title("Dashboard Analisis Mann-Whitney U")
+    st.title(":material/query_stats: Dashboard Analisis Mann-Whitney U")
     st.caption("Evaluasi perbedaan kepuasan pembelajaran Luring vs Daring.")
 
-    # Proteksi Autentikasi Password Admin
-    with st.sidebar.expander("Autentikasi Admin", expanded=True):
-        admin_pwd = st.text_input("Password Admin:", type="password")
-
-    if admin_pwd != ADMIN_PASSWORD:
-        st.warning("Masukkan password admin untuk membuka hasil analisis.")
-        st.caption("Password default lokal: admin123")
+    # Proteksi Autentikasi Admin Berbasis Sesi
+    if not st.session_state.get("admin_logged_in", False):
+        with st.container(border=True):
+            st.subheader(":material/lock: Autentikasi Administrator")
+            st.write("Masukkan password untuk mengakses dashboard evaluasi inferensial.")
+            pwd_input = st.text_input("Password Admin:", type="password", key="admin_auth_pwd")
+            if st.button("Masuk", type="primary", icon=":material/login:", use_container_width=True):
+                if pwd_input == ADMIN_PASSWORD:
+                    st.session_state["admin_logged_in"] = True
+                    st.toast("Autentikasi admin berhasil.")
+                    st.rerun()
+                else:
+                    st.error("Password salah. Silakan coba lagi.")
         st.stop()
-
-    st.success("Autentikasi admin berhasil.")
 
     # Tombol Operasional & Sinkronisasi Data (3 Tombol Sejajar Proporsional)
     col_btn1, col_btn2, col_btn3 = st.columns(3)
 
     with col_btn1:
-        if st.button("Perbarui Data", use_container_width=True):
+        if st.button("Perbarui Data", icon=":material/refresh:", use_container_width=True):
             st.session_state["last_result_time"] = 0
             st.toast("Memuat data terbaru...")
             st.rerun()
 
     with col_btn2:
-        if st.button("Injeksi Data Uji (N=70/grup)", use_container_width=True):
+        if st.button("Injeksi Data Uji (N=70/grup)", icon=":material/database:", use_container_width=True):
             df_sim = generate_responses(n_a=70, n_b=70, seed=int(time.time()))
             injected_count = 0
             for _, row in df_sim.iterrows():
@@ -677,7 +755,7 @@ elif menu == "Dashboard Analisis":
             st.rerun()
 
     with col_btn3:
-        if st.button("Reset Data (Hapus Semua)", use_container_width=True):
+        if st.button("Reset Data (Hapus Semua)", icon=":material/delete_sweep:", use_container_width=True):
             reset_database()
             st.session_state["last_result"] = None
             st.session_state["last_result_time"] = 0
@@ -693,11 +771,12 @@ elif menu == "Dashboard Analisis":
     total_n = n_a + n_b
 
     st.markdown("---")
-    st.subheader("1. Progres Pengumpulan Sampel")
+    st.subheader(":material/timeline: Progres Pengumpulan Sampel")
 
     # Progress bar ketercapaian sampel (Warna Hijau)
-    progress_val = min(total_n / TARGET_TOTAL_N, 1.0)
-    st.progress(progress_val, text=f"Total Sampel Masuk: {total_n} / {TARGET_TOTAL_N} ({progress_val * 100:.1f}%)")
+    pct_achieved = (total_n / TARGET_TOTAL_N) * 100 if TARGET_TOTAL_N > 0 else 0.0
+    progress_val = min(total_n / TARGET_TOTAL_N, 1.0) if TARGET_TOTAL_N > 0 else 0.0
+    st.progress(progress_val, text=f"Total Sampel Masuk: {total_n} / {TARGET_TOTAL_N} ({pct_achieved:.1f}%)")
 
     # 4 Metric KPI Cards Neumorphic (Proporsional, Rapi, Sejajar)
     m_col1, m_col2, m_col3, m_col4 = st.columns(4)
@@ -710,7 +789,7 @@ elif menu == "Dashboard Analisis":
     m_col2.metric(
         "Total Responden",
         f"{total_n} / {TARGET_TOTAL_N}",
-        delta=f"{progress_val * 100:.1f}%",
+        delta=f"{pct_achieved:.1f}%",
     )
     m_col3.metric(
         "Kelompok Luring (A)",
@@ -750,20 +829,19 @@ elif menu == "Dashboard Analisis":
             res = st.session_state["last_result"]
 
         st.markdown("---")
-        st.subheader("2. Hasil Uji Hipotesis Utama (Mann-Whitney U)")
+        st.subheader(":material/calculate: Hasil Uji Hipotesis Utama (Mann-Whitney U)")
         st.caption(f"Kolom Metrik: {res.outcome_column} | Taraf Signifikansi alpha = {res.alpha}")
 
-        # KPI Cards (2 baris x 4 kolom)
+        # KPI Cards (2 baris x 4 kolom - ukuran seragam proporsional)
         kpi1, kpi2, kpi3, kpi4 = st.columns(4)
         kpi1.metric("Median Luring (A)", f"{res.median_a:.1f}", help="Skala Likert 1-5")
         kpi2.metric("Median Daring (B)", f"{res.median_b:.1f}", help="Skala Likert 1-5")
-        kpi3.metric("Statistik Uji (U)", f"{res.statistic:.1f}")
+        kpi3.metric("Statistik Uji (U)", f"{res.statistic:.1f}", help="Statistik peringkat Mann-Whitney U")
         p_val_display = f"{res.p_value:.4f}" if res.p_value >= 0.0001 else "< 0.0001"
         kpi4.metric(
             "p-value (Dua Arah)",
             p_val_display,
-            delta="Signifikan (p < 0.05)" if res.p_value < res.alpha else "Tidak Signifikan",
-            delta_color="normal" if res.p_value < res.alpha else "inverse",
+            help=f"Taraf signifikansi alpha = {res.alpha} | Status: {'Signifikan (p < 0.05)' if res.p_value < res.alpha else 'Tidak Signifikan'}",
         )
 
         kpi5, kpi6, kpi7, kpi8 = st.columns(4)
@@ -788,9 +866,9 @@ elif menu == "Dashboard Analisis":
             )
 
         st.markdown("---")
-        st.subheader("3. Distribusi Skor")
+        st.subheader(":material/bar_chart: Distribusi Skor Kepuasan")
 
-        tab_viz1, tab_viz2 = st.tabs(["Distribusi Frekuensi (%)", "Box Plot Sebaran"])
+        tab_viz1, tab_viz2 = st.tabs([":material/bar_chart: Distribusi Frekuensi (%)", ":material/ssid_chart: Box Plot Sebaran"])
 
         df_plot = pd.DataFrame(
             [{"Varian": "Varian A (Luring)", "Skor": s} for s in scores_a]
@@ -824,7 +902,7 @@ elif menu == "Dashboard Analisis":
             )
             fig_bar.update_yaxes(
                 showgrid=True,
-                gridcolor="#94a3b8",
+                gridcolor="#cbd0d8",
                 gridwidth=1.3,
                 griddash="dot",
                 zeroline=True,
@@ -834,10 +912,10 @@ elif menu == "Dashboard Analisis":
             fig_bar.update_layout(
                 yaxis_title="Proporsi (%)",
                 xaxis_title="Tingkat Skor",
-                paper_bgcolor="#eef2f6",
-                plot_bgcolor="#eef2f6",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#1e293b", family="Inter, sans-serif"),
-                legend=dict(bgcolor="rgba(238, 242, 246, 0.8)", bordercolor="rgba(163, 177, 198, 0.5)", borderwidth=1),
+                legend=dict(bgcolor="rgba(242, 242, 245, 0.85)", bordercolor="rgba(180, 180, 192, 0.4)", borderwidth=1),
                 margin=dict(t=40, b=40, l=40, r=40),
             )
             st.plotly_chart(fig_bar, use_container_width=True)
@@ -854,7 +932,7 @@ elif menu == "Dashboard Analisis":
             )
             fig_box.update_yaxes(
                 showgrid=True,
-                gridcolor="#94a3b8",
+                gridcolor="#cbd0d8",
                 gridwidth=1.3,
                 griddash="dot",
                 linecolor="#94a3b8",
@@ -865,16 +943,16 @@ elif menu == "Dashboard Analisis":
                 linecolor="#94a3b8",
             )
             fig_box.update_layout(
-                paper_bgcolor="#eef2f6",
-                plot_bgcolor="#eef2f6",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#1e293b", family="Inter, sans-serif"),
-                legend=dict(bgcolor="rgba(238, 242, 246, 0.8)", bordercolor="rgba(163, 177, 198, 0.5)", borderwidth=1),
+                legend=dict(bgcolor="rgba(242, 242, 245, 0.85)", bordercolor="rgba(180, 180, 192, 0.4)", borderwidth=1),
                 margin=dict(t=40, b=40, l=40, r=40),
             )
             st.plotly_chart(fig_box, use_container_width=True)
 
         st.markdown("---")
-        st.subheader("4. Analisis Diagnostik 20 Butir")
+        st.subheader(":material/table_chart: Analisis Diagnostik Butir Evaluasi")
 
         all_item_scores = fetch_all_item_scores()
         item_rows = describe_items(all_item_scores)
@@ -904,7 +982,7 @@ elif menu == "Dashboard Analisis":
         st.dataframe(df_desc, use_container_width=True, hide_index=True)
 
         st.markdown("---")
-        with st.expander("Data Mentah Responden"):
+        with st.expander(":material/table_rows: Data Mentah Responden"):
             df_raw = fetch_all_responses()
             if not df_raw.empty:
                 st.dataframe(df_raw.tail(50), use_container_width=True)
