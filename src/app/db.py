@@ -61,12 +61,6 @@ def insert_response(
     """
     Menyimpan 1 respon survei ke database Supabase (atau mock storage lokal).
     Mengembalikan response_id (string UUID).
-
-    Validasi:
-    - variant harus 'A' atau 'B' (InvalidVariantError).
-    - seluruh 20 butir di ITEM_COLUMNS wajib diisi (IncompleteResponseError).
-    - seluruh skor butir harus integer 1 sampai 5 (InvalidScoreError).
-    - session_id harus unik (DuplicateSessionError).
     """
     if variant not in ("A", "B"):
         raise InvalidVariantError(f"Varian tidak valid: '{variant}'. Harus 'A' atau 'B'.")
@@ -96,8 +90,7 @@ def insert_response(
         val = full_answers[c]
         if not isinstance(val, (int, float)) or isinstance(val, bool) or int(val) != val or not (1 <= int(val) <= 5):
             raise InvalidScoreError(
-                f"Skor untuk butir '{c}' tidak valid: '{val}'. Harus integer antara 1 sampai 5."
-            )
+                f"Skor untuk butir '{c}' tidak valid: '{val}'. Harus integer antara 1 sampai 5.")
         full_answers[c] = int(val)
 
     score = full_answers[PRIMARY_ITEM]
@@ -108,8 +101,7 @@ def insert_response(
         "session_id": str(session_id),
         "variant": variant,
         "variant_group": variant,
-        "score": score,
-    }
+        "score": score,}
     for c in ITEM_COLUMNS:
         record[c] = full_answers[c]
 
@@ -150,14 +142,12 @@ def fetch_scores() -> Dict[str, List[int]]:
             int(r.get(PRIMARY_ITEM, r.get("score")))
             for r in _MOCK_STORAGE.values()
             if r.get("variant_group", r.get("variant")) == "A"
-            and r.get(PRIMARY_ITEM, r.get("score")) is not None
-        ]
+            and r.get(PRIMARY_ITEM, r.get("score")) is not None]
         scores_b = [
             int(r.get(PRIMARY_ITEM, r.get("score")))
             for r in _MOCK_STORAGE.values()
             if r.get("variant_group", r.get("variant")) == "B"
-            and r.get(PRIMARY_ITEM, r.get("score")) is not None
-        ]
+            and r.get(PRIMARY_ITEM, r.get("score")) is not None]
         return {"A": scores_a, "B": scores_b}
 
     try:
@@ -167,14 +157,12 @@ def fetch_scores() -> Dict[str, List[int]]:
             int(r[PRIMARY_ITEM]) if PRIMARY_ITEM in r and r[PRIMARY_ITEM] is not None else int(r["score"])
             for r in data
             if r.get("variant_group", r.get("variant")) == "A"
-            and (r.get(PRIMARY_ITEM) is not None or r.get("score") is not None)
-        ]
+            and (r.get(PRIMARY_ITEM) is not None or r.get("score") is not None)]
         scores_b = [
             int(r[PRIMARY_ITEM]) if PRIMARY_ITEM in r and r[PRIMARY_ITEM] is not None else int(r["score"])
             for r in data
             if r.get("variant_group", r.get("variant")) == "B"
-            and (r.get(PRIMARY_ITEM) is not None or r.get("score") is not None)
-        ]
+            and (r.get(PRIMARY_ITEM) is not None or r.get("score") is not None)]
         return {"A": scores_a, "B": scores_b}
     except Exception as e:
         print(f"Error fetching scores: {e}")
@@ -187,8 +175,7 @@ def fetch_all_item_scores() -> Dict[str, Dict[str, List[int]]]:
     Format output: {item_col: {"A": [skor...], "B": [skor...]}}
     """
     result: Dict[str, Dict[str, List[int]]] = {
-        col: {"A": [], "B": []} for col in ITEM_COLUMNS
-    }
+        col: {"A": [], "B": []} for col in ITEM_COLUMNS}
 
     client = get_supabase()
     if client is None:
@@ -215,7 +202,6 @@ def fetch_all_item_scores() -> Dict[str, Dict[str, List[int]]]:
     except Exception as e:
         print(f"Error fetching all item scores: {e}")
         return result
-
 
 def fetch_all_responses() -> pd.DataFrame:
     """Mengambil seluruh data respons sebagai Pandas DataFrame."""
