@@ -51,28 +51,48 @@ Jika `st.session_state["submitted"] == True`, semua step dilewati dan langsung t
 
 ### 3.2 Step 1 — Halaman Stimulus Skenario
 
-**Tujuan:** Membangun persepsi konteks penilaian responden sebelum mengisi kuesioner.
+**Tujuan:** Membangun persepsi konteks penilaian responden sebelum mengisi kuesioner melalui stimulus teks dan visual.
 
 **Komponen UI:**
 
 | Elemen | Detail |
 |---|---|
 | Header | `st.title("Survei Kepuasan Pembelajaran")` |
-| Subheader | "Anda mendapatkan skenario berikut:" |
-| Kotak stimulus | `st.info(...)` — isi berbeda per varian (lihat 3.2.1 dan 3.2.2) |
-| Instruksi | Paragraf singkat: "Bayangkan Anda mengikuti perkuliahan dengan metode di atas. Jawablah pertanyaan berikut berdasarkan persepsi Anda." |
-| Tombol aksi | `st.button("Mulai Mengisi Survei →")` → set `session_state["step"] = "questions"` |
+| Subheader | "Anda dialokasikan ke dalam skenario metode pembelajaran berikut:" |
+| Grid Foto Stimulus | Grid 2x2 (`st.columns(2)`) memuat 4 foto representatif aktivitas belajar sesuai varian (lihat 3.2.3). |
+| Kotak Narasi Skenario | `st.info(...)` berisi poin-poin operasional perkuliahan sesuai varian (lihat 3.2.1 dan 3.2.2). |
+| Instruksi | Paragraf penjelas: "Perhatikan visual dan skenario di atas. Bayangkan Anda mengikuti perkuliahan dengan metode tersebut, lalu klik tombol di bawah untuk mengisi kuesioner kepuasan." |
+| Tombol Aksi | `st.button("Mulai Mengisi Survei →", type="primary")` → set `session_state["step"] = "questions"` |
 
 #### 3.2.1 Stimulus Varian A (Luring)
 
 > **Konteks Skenario: Pembelajaran Luring (Tatap Muka)**
 > - Perkuliahan dilaksanakan secara tatap muka langsung di ruang kelas kampus sesuai jadwal tetap.
 > - Materi disampaikan melalui papan tulis/proyektor dengan diskusi interaktif secara fisik bersama dosen dan rekan kelas.
-> - Presensi, tanya jawab, dan evaluasi dilakukan langsung di dalam ruangan kelas.
+> - Presensi, tanya jawab, dan evaluasi dilakukan langsung di dalam ruangan kelas fisik.
 
 #### 3.2.2 Stimulus Varian B (Daring)
 
 > **Konteks Skenario: Pembelajaran Daring (Online)**
+> - Perkuliahan dilaksanakan secara jarak jauh melalui platform konferensi video (Zoom/Google Meet) dan LMS.
+> - Materi disampaikan melalui berbagi layar (screen sharing) serta rekaman digital yang dapat diakses ulang.
+> - Presensi, diskusi melalui kolom chat/mic, dan pengumpulan tugas dilakukan sepenuhnya secara online.
+
+#### 3.2.3 Spesifikasi Grid Foto Stimulus (2x2)
+
+Aset foto disimpan secara lokal pada direktori `src/app/assets/` dengan struktur:
+* **Varian A (Luring):** `src/app/assets/variant_a/`
+  1. `1_lecture.jpg` — Penjelasan dosen di depan kelas / papan tulis.
+  2. `2_discussion.jpg` — Diskusi kelompok tatap muka antar-mahasiswa.
+  3. `3_qa.jpg` — Sesi tanya jawab langsung (mengacungkan tangan).
+  4. `4_assignment.jpg` — Pengerjaan tugas / ujian di kertas kelas fisik.
+* **Varian B (Daring):** `src/app/assets/variant_b/`
+  1. `1_lecture.jpg` — Dosen share screen slide presentasi di Zoom / Meet.
+  2. `2_discussion.jpg` — Kolaborasi virtual di breakout room / Google Docs.
+  3. `3_qa.jpg` — Sesi tanya jawab via mic / fitur raise hand / chat box.
+  4. `4_assignment.jpg` — Pengumpulan tugas digital melalui LMS / Classroom.
+
+*Fallback Perilaku:* Jika file foto belum ada di folder, Streamlit otomatis merender kartu placeholder informatif tanpa menyebabkan error crash.
 > - Perkuliahan dilaksanakan secara jarak jauh melalui platform konferensi video (Zoom/Google Meet) dan LMS.
 > - Materi disampaikan melalui berbagi layar (screen sharing) serta rekaman digital yang dapat diakses ulang.
 > - Presensi, diskusi melalui kolom chat/mic, dan pengumpulan tugas dilakukan sepenuhnya secara online.
