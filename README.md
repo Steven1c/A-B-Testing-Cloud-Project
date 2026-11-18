@@ -26,8 +26,8 @@ Project/
 |   `-- evidence/                 # Screenshot monitoring, uji beban, dan bukti teardown
 |-- src/
 |   |-- analysis/                 # Modul analisis data & simulasi Monte Carlo
-|   |   |-- stats_engine.py       # Engine Welch's t-test, Z-test, dan selang kepercayaan
-|   |   `-- simulate_data.py      # Generator data responden sintetis (target N)
+|   |   |-- stats_engine.py       # Engine uji non-parametrik Mann-Whitney U, rank-biserial, dan CI Hodges-Lehmann
+|   |   `-- simulate_data.py      # Generator data survei Monte Carlo Likert 1-5 (target N)
 |   |-- app/                      # Aplikasi web survei & dashboard admin
 |   |   |-- db.py                 # Klien integrasi database Supabase PostgreSQL
 |   |   `-- main.py               # Aplikasi Streamlit (Halaman survei + Analisis)

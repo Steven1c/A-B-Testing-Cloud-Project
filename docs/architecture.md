@@ -16,7 +16,7 @@ Sistem ini dirancang sebagai platform survei daring berbasis komputasi awan yang
 | :--- | :--- | :--- | :--- | :--- |
 | **Client Layer** | Web Browser (Responden & Dosen) | Client-side Client | Mengisi formulir survei A/B dan mengakses panel hasil analisis | HTTPS / TLS (Port 443) |
 | **PaaS Web App** | Streamlit (Python Runtime) | PaaS (Render / Streamlit Cloud) | Hosting antarmuka survei, pengacakan varian A/B (50:50), dan proteksi password admin | HTTP / WebSockets (Port 8000 / 443) |
-| **In-Memory Analytics** | SciPy & Statsmodels | In-Process Engine (`stats_engine.py`) | Komputasi Power Analysis, uji normalitas (Shapiro-Wilk), Welch's t-test, Z-test, dan selang kepercayaan | In-memory function call (`< 200 ms`) |
+| **In-Memory Analytics** | SciPy & NumPy | In-Process Engine (`stats_engine.py`) | Komputasi uji non-parametrik Mann-Whitney U, effect size rank-biserial, dan bootstrap CI Hodges-Lehmann | In-memory function call (`< 200 ms`) |
 | **Managed Database** | PostgreSQL Server | Managed Database / DBaaS (Supabase) | Penyimpanan relasional tabel `survey_responses` dengan proteksi Row Level Security (RLS) | PostgreSQL SSL (Port 5432) |
 | **Backup & Recovery** | Supabase Automated Backup | Managed Cloud Storage | Snapshot harian otomatis untuk menjamin integritas data survei | Internal Cloud Sync |
 | **CI/CD & DevOps** | GitHub Repository | SaaS | Version control source code dan pemicu otomatisasi deployment saat ada `git push` | Git HTTPS / Webhook |

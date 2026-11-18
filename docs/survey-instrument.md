@@ -109,45 +109,13 @@ Pada aplikasi web, responden Varian A hanya melihat teks versi **[Varian A — L
 
 ---
 
-## 4. Skema Tabel Database SQL (`schema.sql`)
+## 4. Pemetaan Kolom Database
 
-```sql
-CREATE TABLE survey_responses (
-    id SERIAL PRIMARY KEY,
-    variant_group CHAR(1) NOT NULL CHECK (variant_group IN ('A', 'B')),
-    
-    -- Dimensi 1: Kepuasan & Efektivitas Keseluruhan (Q1 = Metrik Utama)
-    sat_overall SMALLINT NOT NULL CHECK (sat_overall BETWEEN 1 AND 5),
-    sat_expectation SMALLINT NOT NULL CHECK (sat_expectation BETWEEN 1 AND 5),
-    sat_effectiveness SMALLINT NOT NULL CHECK (sat_effectiveness BETWEEN 1 AND 5),
-    sat_preference SMALLINT NOT NULL CHECK (sat_preference BETWEEN 1 AND 5),
-    
-    -- Dimensi 2: Pedagogis & Pemahaman Materi
-    mat_comprehension SMALLINT NOT NULL CHECK (mat_comprehension BETWEEN 1 AND 5),
-    mat_clarity SMALLINT NOT NULL CHECK (mat_clarity BETWEEN 1 AND 5),
-    mat_retention SMALLINT NOT NULL CHECK (mat_retention BETWEEN 1 AND 5),
-    mat_readiness SMALLINT NOT NULL CHECK (mat_readiness BETWEEN 1 AND 5),
-    
-    -- Dimensi 3: Interaksi & Keterlibatan Belajar
-    int_lecturer SMALLINT NOT NULL CHECK (int_lecturer BETWEEN 1 AND 5),
-    int_feedback SMALLINT NOT NULL CHECK (int_feedback BETWEEN 1 AND 5),
-    int_peers SMALLINT NOT NULL CHECK (int_peers BETWEEN 1 AND 5),
-    int_focus SMALLINT NOT NULL CHECK (int_focus BETWEEN 1 AND 5),
-    
-    -- Dimensi 4: Fleksibilitas & Kenyamanan Lingkungan
-    flx_time SMALLINT NOT NULL CHECK (flx_time BETWEEN 1 AND 5),
-    flx_location SMALLINT NOT NULL CHECK (flx_location BETWEEN 1 AND 5),
-    flx_comfort SMALLINT NOT NULL CHECK (flx_comfort BETWEEN 1 AND 5),
-    flx_pace SMALLINT NOT NULL CHECK (flx_pace BETWEEN 1 AND 5),
-    
-    -- Dimensi 5: Dukungan Teknis & Kelancaran Operasional
-    tec_access SMALLINT NOT NULL CHECK (tec_access BETWEEN 1 AND 5),
-    tec_stability SMALLINT NOT NULL CHECK (tec_stability BETWEEN 1 AND 5),
-    tec_submission SMALLINT NOT NULL CHECK (tec_submission BETWEEN 1 AND 5),
-    tec_attendance SMALLINT NOT NULL CHECK (tec_attendance BETWEEN 1 AND 5),
-    
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+Seluruh 20 butir pertanyaan di atas dipetakan langsung ke tabel relasional `survey_responses` pada database PostgreSQL (Supabase). Skema DDL lengkap, indeks performa, dan aturan Row Level Security (RLS) dikelola secara terpusat pada file:
 
-CREATE INDEX idx_survey_variant_group ON survey_responses (variant_group);
-```
+👉 [src/infra/schema.sql](file:///d:/M.Hafiz/Kuliah/Sem%205/Cloud%20Computing/Project/src/infra/schema.sql)
+
+**Pemetaan Ringkas:**
+* `sat_overall` (Q1) bertindak sebagai metrik primer uji hipotesis H₀ vs H₁ dan disinkronkan ke kolom `score`.
+* Q2 s.d. Q20 dipetakan ke masing-masing kolom dengan tipe data `SMALLINT CHECK (kolom BETWEEN 1 AND 5)`.
+* Kolom kelompok perlakuan dicatat pada kolom `variant` ('A' atau 'B').
