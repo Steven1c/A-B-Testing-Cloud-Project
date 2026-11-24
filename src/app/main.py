@@ -572,15 +572,19 @@ if menu == "Formulir Survei":
         for idx, item in enumerate(items_meta):
             target_col = col1 if idx % 2 == 0 else col2
             with target_col:
-                img_path = os.path.join(base_asset_dir, item["filename"])
-                if os.path.exists(img_path):
-                    st.image(img_path, caption=item["title"], use_container_width=True)
-                    st.caption(item["desc"])
-                else:
-                    with st.container(border=True):
-                        st.markdown(f"**{item['title']}**")
-                        st.write(item["desc"])
-
+                with st.container(border=True):
+                    base_name = os.path.splitext(item["filename"])[0]
+                    found_img = None
+                    for ext in (".jpg", ".jpeg", ".png", ".webp", ".JPG", ".PNG"):
+                        candidate = os.path.join(base_asset_dir, base_name + ext)
+                        if os.path.exists(candidate):
+                            found_img = candidate
+                            break
+                    if found_img:
+                        st.image(found_img, use_container_width=True)
+                    st.markdown(f"**{item['title']}**")
+                    st.write(item["desc"])
+        
         st.markdown("---")
         st.write(
             "Perhatikan skenario di atas. Bayangkan Anda mengikuti perkuliahan dengan metode tersebut, "
