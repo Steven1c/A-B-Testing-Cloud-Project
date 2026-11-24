@@ -6,6 +6,8 @@ Repositori ini memuat implementasi *end-to-end* layanan platform survei daring t
 * **Mata Kuliah:** Komputasi Awan (1519600054) — Topik 3: Platform Survei & Uji A/B
 * **Service Model:** PaaS (Platform as a Service) & Managed Database
 * **Stack Utama:** Python 3.10+, Streamlit, Supabase (PostgreSQL 15), SciPy, Statsmodels, Plotly
+* **Demo Video:** https://youtu.be/85sa6K5kzkM
+* **Link Web:** https://01a20719-e42a-7eb2-9ac3-c43af8d8dce0.share.connect.posit.cloud/
 
 ---
 
