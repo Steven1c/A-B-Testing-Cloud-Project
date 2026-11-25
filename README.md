@@ -90,7 +90,7 @@ Project/
 ### 2. Kloning Repositori & Instalasi Dependensi
 ```bash
 # Clone repositori
-git clone https://github.com/mhmdhafiz07/Platform-Survei-Uji-AB.git
+git clone https://github.com/Steven1c/A-B-Testing-Cloud-Project
 cd Platform-Survei-Uji-AB
 
 # Buat virtual environment
@@ -160,16 +160,16 @@ Hasil verifikasi:
 
 ## Panduan Penggelaran Cloud (PaaS)
 
-Layanan dapat dideploy secara gratis menggunakan **Streamlit Community Cloud** atau **Render**:
-1. Hubungkan repositori GitHub ke penyedia PaaS pilihan.
-2. Tentukan konfigurasi build:
-   * **Runtime:** Python 3.10+
-   * **Main file path:** `src/app/main.py`
-3. Masukkan kredensial pada menu **Environment Variables / Secrets**:
-   * `SUPABASE_URL`
-   * `SUPABASE_KEY`
-   * `ADMIN_PASSWORD`
-4. Deploy aplikasi. Layanan otomatis berjalan di endpoint publik dengan protokol HTTPS aktif.
+Layanan dideploy secara gratis menggunakan **Postit Connect Cloud**:
+1. Hubungkan repositori GitHub `Steven1c/A-B-Testing-Cloud-Project` ke Posit Connect Cloud melalui menu **Integrations**.
+2. Tentukan konfigurasi aplikasi:
+   - **Runtime:** Python 3.10+
+   - **Main file path:** `src/app/main.py`
+3. Masukkan kredensial pada menu **Settings -> Variables**:
+   - `SUPABASE_URL`
+   - `SUPABASE_KEY`
+   - `ADMIN_PASSWORD`
+4. Publish/Deploy aplikasi. Layanan otomatis berjalan di endpoint publik dengan protokol HTTPS aktif.
 
 ---
 
