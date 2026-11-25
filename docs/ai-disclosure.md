@@ -9,8 +9,7 @@
 | **Nov 10, 2026** | Agentic AI    | Struktur Repositori & Boilerplate Streamlit | Pembuatan kerangka awal direktori proyek, template `schema.sql`, dan scaffolding web  | Menjalankan kode secara lokal via terminal, memverifikasi tidak ada error sintaks, dan mengecek rute halaman |
 | **Nov 10, 2026** | Agentic AI    | Modul Statistik `stats_engine.py`           | Rekomendasi formula derajat bebas Welch-Satterthwaite dan sintaks `proportions_ztest` | Membandingkan output perhitungan p-value manual dengan library R dan SciPy                                   |
 | **Nov 12, 2026** | LLM           | Arsitektur Sistem                           | Membuat diagram arsitektur HTML                                                       | Verifikasi diagram asli dan kejelasan output                                                                 |
-|                  |               |                                             |                                                                                       |                                                                                                              |
-|                  |               |                                             |                                                                                       |                                                                                                              |
+| **Nov 24, 2026** | LLM           | Skema Database & Tampilan Stimulus (`schema.sql`) | Penyusunan sintaks DDL tabel `survey_responses` dan kebijakan RLS Supabase | Mengeksekusi kueri langsung di SQL Editor Supabase dan menguji input data *live*       |
 
 ---
 
