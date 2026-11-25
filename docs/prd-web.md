@@ -1,9 +1,9 @@
 # PRD — Aplikasi Web Platform Survei & Uji A/B
 
-**Versi:** 1.0 · **Tanggal:** 18 November 2026  
+**Versi:** 1.1 · **Tanggal:** 25 November 2026  
 **Penanggung Jawab:** Muhamad Hafiz (Infrastructure & Operations Layer)  
 **Stack:** Python · Streamlit · Supabase PostgreSQL · Plotly · SciPy  
-**Deployment Target:** Render (PaaS) — kredensial via Environment Variables (`os.getenv`)
+**Deployment Target:** Posit Connect Cloud (Produksi Utama) & Render via `render.yaml` (Cadangan) — kredensial via Environment Variables (`os.getenv`)
 
 ---
 
@@ -91,11 +91,6 @@ Aset foto disimpan secara lokal pada direktori `src/app/assets/` dengan struktur
   2. `2_discussion.jpg` — Kolaborasi virtual di breakout room / Google Docs.
   3. `3_qa.jpg` — Sesi tanya jawab via mic / fitur raise hand / chat box.
   4. `4_assignment.jpg` — Pengumpulan tugas digital melalui LMS / Classroom.
-
-*Fallback Perilaku:* Jika file foto belum ada di folder, Streamlit otomatis merender kartu placeholder informatif tanpa menyebabkan error crash.
-> - Perkuliahan dilaksanakan secara jarak jauh melalui platform konferensi video (Zoom/Google Meet) dan LMS.
-> - Materi disampaikan melalui berbagi layar (screen sharing) serta rekaman digital yang dapat diakses ulang.
-> - Presensi, diskusi melalui kolom chat/mic, dan pengumpulan tugas dilakukan sepenuhnya secara online.
 
 ---
 
@@ -259,9 +254,13 @@ else:
 
 ---
 
-## 6. Konfigurasi Deployment (Render)
+## 6. Konfigurasi Deployment (Posit Connect Cloud & Render)
 
-**Start Command:**
+**Deployment Utama (Posit Connect Cloud):**
+- Menghubungkan langsung repositori GitHub `Steven1c/A-B-Testing-Cloud-Project` (branch `main`) dengan entrypoint `src/app/main.py`.
+- Kredensial disuntikkan melalui menu **Settings -> Variables**.
+
+**Konfigurasi Cadangan (Render — `render.yaml`):**
 ```bash
 streamlit run src/app/main.py --server.port $PORT --server.address 0.0.0.0
 ```
