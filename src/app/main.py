@@ -741,7 +741,12 @@ elif menu == "Dashboard Analisis":
 
     with col_btn2:
         if st.button("Injeksi Data Uji (N=70/grup)", icon=":material/database:", use_container_width=True):
-            df_sim = generate_responses(n_a=70, n_b=70, seed=int(time.time()))
+            df_sim = generate_responses(
+                n_a=70,
+                n_b=70,
+                seed=time.time_ns() % (2**32),
+                scenario="random",
+            )
             injected_count = 0
             for _, row in df_sim.iterrows():
                 ans = {c: int(row[c]) for c in ITEM_COLUMNS}
